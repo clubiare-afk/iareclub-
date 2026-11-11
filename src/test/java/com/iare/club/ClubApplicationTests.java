@@ -251,6 +251,7 @@ class ClubApplicationTests {
 		RegistrationRequest ownerRequest=new RegistrationRequest();ownerRequest.setFullName("Referral Owner");ownerRequest.setEmail("ref-owner@example.com");ownerRequest.setPassword("Secure123");AppUser owner=userService.register(ownerRequest);
 		RegistrationRequest friendRequest=new RegistrationRequest();friendRequest.setFullName("Referral Friend");friendRequest.setEmail("ref-friend@example.com");friendRequest.setPassword("Secure123");friendRequest.setReferralCode(owner.getReferralCode());AppUser friend=userService.register(friendRequest);
 		assertEquals(1,referralService.dashboard(owner).pending());assertEquals(BigDecimal.ZERO,referralService.dashboard(owner).earnings());
+		assertTrue(referralService.dashboard(owner).link().startsWith("https://www.fundrise.shop/signup?ref=MM"));
 		InvestmentProduct product=new InvestmentProduct();product.setName("Referral Test Product");product.setImageUrl("https://example.com/referral.jpg");product.setOriginalPrice(new BigDecimal("100.00"));product.setDiscountPrice(new BigDecimal("100.00"));product.setDailyEarnings(new BigDecimal("5.00"));product.setTotalDays(2);product.setActive(true);product=productService.save(product);
 		long productId=product.getId();depositService.depositInstantly(friend,new BigDecimal("200.00"));investmentService.purchase(friend,productId,"referral-first-purchase");
 		assertEquals(0,new BigDecimal("200.00").compareTo(walletService.getOrCreate(owner).getRewardBalance()));assertEquals(1,referralService.dashboard(owner).successful());
