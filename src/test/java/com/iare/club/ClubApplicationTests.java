@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 import com.iare.club.repository.ProductRepository;
+import com.iare.club.repository.WalletTransactionRepository;
 import org.springframework.mock.web.MockHttpSession;
 import com.iare.club.dto.*;
 import com.iare.club.entity.*;
@@ -37,6 +38,7 @@ class ClubApplicationTests {
 	@Autowired ProductService productService;
 	@Autowired WalletService walletService;
 	@Autowired ReferralService referralService;
+	@Autowired WalletTransactionRepository walletTransactions;
 	@Autowired TestClock testClock;
 
 	@TestConfiguration static class ClockConfiguration {
@@ -61,6 +63,18 @@ class ClubApplicationTests {
 			.andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/login"));
 		mvc.perform(post("/login").with(csrf()).param("email","aarav@example.com").param("password","Secure123"))
 			.andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/dashboard"));
+	}
+
+	@Test void expiredPaymentReturnSessionContinuesToDepositAfterLogin() throws Exception {
+		mvc.perform(post("/signup").with(csrf()).param("fullName","Payment Return User")
+			.param("email","payment-return@example.com").param("password","Secure123"));
+		MockHttpSession session=(MockHttpSession)mvc.perform(get("/deposit")
+			.queryParam("payment","pending").queryParam("txnid","MM-PAYMENT-RETURN"))
+			.andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("http://localhost/login"))
+			.andReturn().getRequest().getSession(false);
+		mvc.perform(post("/login").session(session).with(csrf()).param("email","payment-return@example.com").param("password","Secure123"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(redirectedUrl("http://localhost/deposit?payment=pending&txnid=MM-PAYMENT-RETURN&continue"));
 	}
 
 	@Test void adminLoginRoleProtectionAndProductCrudWork() throws Exception {
@@ -152,12 +166,21 @@ class ClubApplicationTests {
 		assertEquals(0,BigDecimal.ZERO.compareTo(walletService.getOrCreate(account).getDepositBalance()));
 	}
 
-	@Test void payuVerificationCreditsExactlyOnceAndRejectsUnverifiedStates() {
+	@Test void payuVerificationCreditsExactlyOnceAndRejectsUnverifiedStates() throws Exception {
 		RegistrationRequest registration=new RegistrationRequest();registration.setFullName("PayU Test User");registration.setEmail("payu-flow@example.com");registration.setPassword("Secure123");AppUser account=userService.register(registration);
 		Deposit success=depositService.createPayU(account,new BigDecimal("750.00"));
 		PayUClient.Verification captured=new PayUClient.Verification(success.getPaymentReference(),"success","captured",new BigDecimal("750.00"),"PAYU-1","UPI","BANK-1","No Error");
 		depositService.applyPayUVerification(captured);depositService.applyPayUVerification(captured);
 		assertEquals(0,new BigDecimal("750.00").compareTo(walletService.getOrCreate(account).getDepositBalance()));
+		WalletTransaction payuTransaction=walletTransactions.findByReference(success.getPaymentReference()).orElseThrow();
+		assertEquals("UPI",payuTransaction.getPaymentMethod());
+		assertEquals(0,BigDecimal.ZERO.compareTo(payuTransaction.getBalanceBefore()));
+		assertEquals(1,walletTransactions.findAll().stream().filter(item->item.getReference().equals(success.getPaymentReference())).count());
+		mvc.perform(get("/payments/payu/result").param("txnid",success.getPaymentReference()).with(user(account.getEmail()).roles("USER")))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.amount").value(750.00)).andExpect(jsonPath("$.walletBalance").value(750.00))
+			.andExpect(jsonPath("$.payuTransactionId").value("PAYU-1")).andExpect(jsonPath("$.paymentMethod").value("UPI"));
+		mvc.perform(post("/payments/payu/webhook").param("txnid",success.getPaymentReference()).param("hash","invalid"))
+			.andExpect(status().isBadRequest());
 		Deposit pending=depositService.createPayU(account,new BigDecimal("200.00"));
 		assertEquals(Deposit.Status.PENDING,depositService.applyPayUVerification(new PayUClient.Verification(pending.getPaymentReference(),"pending","pending",new BigDecimal("200.00"),"PAYU-2","NB",null,"Pending")).getStatus());
 		Deposit failed=depositService.createPayU(account,new BigDecimal("300.00"));

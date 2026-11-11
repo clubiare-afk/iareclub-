@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.math.RoundingMode;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,11 +67,14 @@ public class DepositService {
     }
 
     @Transactional
-    public Deposit createPayU(AppUser user, BigDecimal amount) {
+    public Deposit createPayU(AppUser user, BigDecimal amount) { return createPayU(user,amount,"https://iareclub-production.up.railway.app"); }
+
+    @Transactional
+    public Deposit createPayU(AppUser user, BigDecimal amount, String returnOrigin) {
         limits.check("payu-create:" + user.getId(), 10);
         validateAmount(amount);
         String reference = "MM" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
-        return deposits.save(new Deposit(user, amount.setScale(2, RoundingMode.UNNECESSARY), reference, "PAYU", clock.instant()));
+        return deposits.save(new Deposit(user, amount.setScale(2, RoundingMode.UNNECESSARY), reference, "PAYU", clock.instant(),returnOrigin));
     }
 
     @Transactional
@@ -84,12 +88,12 @@ public class DepositService {
         if (verification.captured()) {
             if (verification.amount() == null) throw new FinancialException("PayU did not return a verifiable amount");
             Wallet wallet = walletService.lock(deposit.getUser());
+            BigDecimal previousBalance = wallet.getDepositBalance();
             wallet.creditDeposit(deposit.getAmount());
             if (deposit.markSuccessful(now, wallet.getDepositBalance())) {
                 deposit.updateGateway(verification.payuPaymentId(), verification.paymentMethod(), verification.unmappedStatus(), verification.message(), verification.bankReference(), now);
                 wallets.save(wallet);
-                if (!transactions.existsByReference(deposit.getPaymentReference())) transactions.save(new WalletTransaction(deposit.getUser(), WalletTransaction.Type.DEPOSIT,
-                        WalletTransaction.Status.SUCCESSFUL, deposit.getAmount(), wallet.getDepositBalance(), deposit.getPaymentReference(), "PayU payment verified and credited", now));
+                if (!transactions.existsByReference(deposit.getPaymentReference())) transactions.save(WalletTransaction.payuDeposit(deposit.getUser(),deposit.getAmount(),previousBalance,wallet.getDepositBalance(),deposit.getPaymentReference(),verification.paymentMethod(),now));
             }
         } else if (verification.pending() || "not_found".equalsIgnoreCase(verification.status())) {
             deposit.markPending(verification.payuPaymentId(), verification.paymentMethod(), verification.unmappedStatus(), verification.message(), verification.bankReference(), now);
@@ -124,6 +128,25 @@ public class DepositService {
     @Transactional(readOnly = true)
     public List<Deposit> history(AppUser user) {
         return deposits.findTop50ByUserIdOrderByCreatedAtDesc(user.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public Deposit findForUser(String reference, AppUser user) {
+        Deposit deposit = deposits.findByPaymentReference(reference).orElseThrow(() -> new FinancialException("Deposit not found"));
+        if (!deposit.getUser().getId().equals(user.getId())) throw new FinancialException("Deposit not found");
+        return deposit;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Deposit> findSuccessfulForUser(String reference, AppUser user) {
+        try { Deposit deposit=findForUser(reference,user);return deposit.getStatus()==Deposit.Status.SUCCESSFUL?Optional.of(deposit):Optional.empty(); }
+        catch (FinancialException ignored) { return Optional.empty(); }
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<String> returnOrigin(String reference) {
+        if (reference == null || reference.isBlank()) return Optional.empty();
+        return deposits.findByPaymentReference(reference).map(Deposit::getReturnOrigin);
     }
 
     public boolean isDemoEnabled() { return demoEnabled; }

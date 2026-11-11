@@ -39,3 +39,30 @@ mvn test
 ```
 
 Open `http://localhost:8080`; admin login is at `http://localhost:8080/money`. Flyway applies the financial schema and constraints, while tests use isolated H2 and need no Supabase credentials. Back up an existing database before the first migration. For production, set `JPA_DDL_AUTO=validate`, `SESSION_COOKIE_SECURE=true`, strong admin credentials, and a private encryption key.
+
+## Railway PayU production configuration
+
+Configure these variables in Railway before enabling payments:
+
+```text
+PAYU_ENABLED=true
+PAYU_ENVIRONMENT=PRODUCTION
+PAYU_MERCHANT_KEY=<PayU merchant key>
+PAYU_SALT=<PayU salt>
+MONEYMINT_PUBLIC_BASE_URL=https://<your-railway-domain>
+PAYU_RECONCILIATION_ENABLED=true
+```
+
+`MONEYMINT_PUBLIC_BASE_URL` must be the public HTTPS origin only, without a trailing path. The application posts PayU success, failure, and cancellation responses to:
+
+```text
+https://<your-railway-domain>/payments/payu/callback
+```
+
+Register this additional server callback in PayU Dashboard under **Settings → Webhooks**:
+
+```text
+https://<your-railway-domain>/payments/payu/webhook
+```
+
+Never commit the merchant key or salt. Rotate any credentials that have previously been committed, then update the Railway variables with the replacements.

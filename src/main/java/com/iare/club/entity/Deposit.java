@@ -17,6 +17,7 @@ public class Deposit {
     @ManyToOne(optional=false,fetch=FetchType.LAZY) @JoinColumn(name="user_id",nullable=false) private AppUser user;
     @Column(nullable=false,precision=18,scale=2) private BigDecimal amount;
     @Column(name="payment_reference",nullable=false,length=100) private String paymentReference;
+    @Column(name="return_origin",nullable=false,length=255) private String returnOrigin;
     @Column(name="payu_payment_id",length=100) private String payuPaymentId;
     @Column(name="bank_reference",length=150) private String bankReference;
     @Column(name="payment_method",nullable=false,length=30) private String paymentMethod;
@@ -30,7 +31,8 @@ public class Deposit {
     @Version private long version;
 
     protected Deposit() {}
-    public Deposit(AppUser user,BigDecimal amount,String reference,String method,Instant at){this.user=user;this.amount=amount;paymentReference=reference;paymentMethod=method;status=Status.PENDING;createdAt=at;updatedAt=at;}
+    public Deposit(AppUser user,BigDecimal amount,String reference,String method,Instant at){this(user,amount,reference,method,at,"https://iareclub-production.up.railway.app");}
+    public Deposit(AppUser user,BigDecimal amount,String reference,String method,Instant at,String returnOrigin){this.user=user;this.amount=amount;paymentReference=reference;this.returnOrigin=returnOrigin;paymentMethod=method;status=Status.PENDING;createdAt=at;updatedAt=at;}
     public boolean markSuccessful(Instant at,BigDecimal balance){if(status==Status.SUCCESSFUL)return false;if(status!=Status.PENDING)throw new IllegalStateException("A final payment cannot be credited");status=Status.SUCCESSFUL;completedAt=at;updatedAt=at;walletBalanceAfter=balance;return true;}
     public void markPending(String payuId,String method,String gateway,String message,String bankRef,Instant at){if(status!=Status.PENDING)return;updateGateway(payuId,method,gateway,message,bankRef,at);}
     public void markFailed(boolean cancelled,String payuId,String method,String gateway,String message,String bankRef,Instant at){if(status!=Status.PENDING)return;status=cancelled?Status.CANCELLED:Status.FAILED;completedAt=at;updateGateway(payuId,method,gateway,message,bankRef,at);}
@@ -46,5 +48,5 @@ public class Deposit {
     public String getDisplayMethod(){return "ADMIN_CREDIT".equals(paymentMethod)?"WALLET":paymentMethod;}
     @Transient
     public String getDisplayProvider(){return "ADMIN_CREDIT".equals(paymentMethod)?"Money Mint":"PayU";}
-    public Long getId(){return id;} public AppUser getUser(){return user;} public BigDecimal getAmount(){return amount;} public String getPaymentReference(){return paymentReference;} public String getPayuPaymentId(){return payuPaymentId;} public String getBankReference(){return bankReference;} public String getPaymentMethod(){return paymentMethod;} public String getGatewayStatus(){return gatewayStatus;} public String getGatewayMessage(){return gatewayMessage;} public BigDecimal getWalletBalanceAfter(){return walletBalanceAfter;} public Status getStatus(){return status;} public Instant getCreatedAt(){return createdAt;} public Instant getUpdatedAt(){return updatedAt;} public Instant getCompletedAt(){return completedAt;}
+    public Long getId(){return id;} public AppUser getUser(){return user;} public BigDecimal getAmount(){return amount;} public String getPaymentReference(){return paymentReference;} public String getReturnOrigin(){return returnOrigin;} public String getPayuPaymentId(){return payuPaymentId;} public String getBankReference(){return bankReference;} public String getPaymentMethod(){return paymentMethod;} public String getGatewayStatus(){return gatewayStatus;} public String getGatewayMessage(){return gatewayMessage;} public BigDecimal getWalletBalanceAfter(){return walletBalanceAfter;} public Status getStatus(){return status;} public Instant getCreatedAt(){return createdAt;} public Instant getUpdatedAt(){return updatedAt;} public Instant getCompletedAt(){return completedAt;}
 }

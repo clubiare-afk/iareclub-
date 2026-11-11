@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" th:content="'0;url=' + ${returnUrl}">
+  <title>Returning to Money Mint</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#eef4f1;color:#06262c;font-family:Arial,sans-serif}.card{width:min(92vw,430px);padding:42px 30px;text-align:center;background:#fff;border:1px solid #dce7e2;border-radius:24px;box-shadow:0 24px 60px rgba(6,38,44,.12)}.mark{width:58px;height:58px;margin:0 auto 20px;display:grid;place-items:center;border-radius:50%;background:#daf9ec;color:#008b67;font-size:26px;font-weight:700}.dots{display:flex;justify-content:center;gap:7px;margin:22px 0}.dots span{width:8px;height:8px;border-radius:50%;background:#24d39a;animation:pulse 1.2s infinite}.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}a{color:#007d61;font-weight:700}@keyframes pulse{0%,80%,100%{opacity:.25;transform:scale(.75)}40%{opacity:1;transform:scale(1)}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark">&#10003;</div>
+    <h1>Payment received</h1>
+    <p>Securely returning you to your deposit page.</p>
+    <div class="dots" aria-label="Loading"><span></span><span></span><span></span></div>
+    <a th:href="${returnUrl}">Continue to Money Mint</a>
+  </main>
+</body>
+</html>

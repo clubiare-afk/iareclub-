@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local payment credentials must never be committed.
+/config/application-secrets.properties

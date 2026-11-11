@@ -73,9 +73,9 @@ public class SecurityConfig {
             .securityContext(context->context.securityContextRepository(contextRepository))
             .authorizeHttpRequests(auth->auth
                 .requestMatchers("/","/signup","/login","/css/**","/js/**","/images/**","/error","/payments/payu/callback","/payments/payu/webhook").permitAll()
-                .requestMatchers("/dashboard/**","/products/**","/my-products/**","/scratch/**","/wallet/**","/deposit/**","/investments/**","/api/investments/**","/withdrawal/**","/activity/**","/refer-and-earn/**","/payments/payu/status","/api/advertisements/active","/api/carousel-banners/active").hasRole("USER").anyRequest().denyAll())
+                .requestMatchers("/dashboard/**","/products/**","/my-products/**","/scratch/**","/wallet/**","/deposit/**","/investments/**","/api/investments/**","/withdrawal/**","/activity/**","/refer-and-earn/**","/payments/payu/status","/payments/payu/result","/api/advertisements/active","/api/carousel-banners/active").hasRole("USER").anyRequest().denyAll())
             .formLogin(form->form.loginPage("/login").usernameParameter("email")
-                .defaultSuccessUrl("/dashboard",true).failureUrl("/login?error").permitAll())
+                .defaultSuccessUrl("/dashboard",false).failureUrl("/login?error").permitAll())
             .logout(logout->logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout")
                 .addLogoutHandler((request,response,authentication)->{if(request.getSession(false)!=null)request.getSession(false).removeAttribute(USER_CONTEXT);})
                 .invalidateHttpSession(false).clearAuthentication(true))

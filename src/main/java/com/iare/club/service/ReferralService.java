@@ -17,7 +17,7 @@ public class ReferralService {
     private final BigDecimal bonus; private final String publicBaseUrl;
     public ReferralService(ReferralRepository referrals,UserRepository users,WalletRepository wallets,WalletTransactionRepository transactions,
             WalletService walletService,Clock clock,@Value("${moneymint.referral.bonus:200.00}")BigDecimal bonus,
-            @Value("${moneymint.public-base-url:http://localhost:8080}")String publicBaseUrl){
+            @Value("${moneymint.public-base-url:}")String publicBaseUrl){
         this.referrals=referrals;this.users=users;this.wallets=wallets;this.transactions=transactions;this.walletService=walletService;this.clock=clock;
         this.bonus=bonus.setScale(2);this.publicBaseUrl=publicBaseUrl.replaceAll("/$","");
     }
