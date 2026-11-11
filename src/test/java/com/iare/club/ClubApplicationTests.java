@@ -40,6 +40,7 @@ class ClubApplicationTests {
 	@Autowired ReferralService referralService;
 	@Autowired WalletTransactionRepository walletTransactions;
 	@Autowired TestClock testClock;
+	@Autowired org.springframework.core.env.Environment environment;
 
 	@TestConfiguration static class ClockConfiguration {
 		@Bean @Primary TestClock testClock(){return new TestClock(Instant.parse("2026-01-01T00:00:00Z"));}
@@ -75,6 +76,13 @@ class ClubApplicationTests {
 		mvc.perform(post("/login").session(session).with(csrf()).param("email","payment-return@example.com").param("password","Secure123"))
 			.andExpect(status().is3xxRedirection())
 			.andExpect(redirectedUrl("http://localhost/deposit?payment=pending&txnid=MM-PAYMENT-RETURN&continue"));
+	}
+
+	@Test void loginSessionCookieSupportsSecurePayuCrossSiteReturn() {
+		assertEquals("true",environment.getProperty("server.servlet.session.cookie.http-only"));
+		assertEquals("true",environment.getProperty("server.servlet.session.cookie.secure"));
+		assertEquals("none",environment.getProperty("server.servlet.session.cookie.same-site"));
+		assertEquals("framework",environment.getProperty("server.forward-headers-strategy"));
 	}
 
 	@Test void adminLoginRoleProtectionAndProductCrudWork() throws Exception {
