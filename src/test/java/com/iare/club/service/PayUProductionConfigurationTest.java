@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 class PayUProductionConfigurationTest {
     @Test
@@ -68,5 +69,18 @@ class PayUProductionConfigurationTest {
         PaymentOriginService origins = new PaymentOriginService("http://localhost:8080,https://iareclub-production.up.railway.app","https://iareclub-production.up.railway.app");
         assertEquals("https://iareclub-production.up.railway.app",origins.safeStoredOrigin("https://iareclub-production.up.railway.app/"));
         assertEquals("https://iareclub-production.up.railway.app",origins.safeStoredOrigin("https://attacker.example"));
+    }
+
+    @Test
+    void paymentOriginComesFromValidatedBrowserOriginOnLocalhostAndRailway() {
+        PaymentOriginService origins = new PaymentOriginService("http://localhost:8080,https://iareclub-production.up.railway.app","https://iareclub-production.up.railway.app");
+        MockHttpServletRequest local = new MockHttpServletRequest("POST","/deposit");
+        local.addHeader("Origin","http://localhost:8080");
+        assertEquals("http://localhost:8080",origins.trustedOrigin(local));
+        MockHttpServletRequest railway = new MockHttpServletRequest("POST","/deposit");
+        railway.addHeader("Origin","https://iareclub-production.up.railway.app");
+        railway.addHeader("X-Forwarded-Host","internal.railway.app");
+        railway.addHeader("X-Forwarded-Proto","https");
+        assertEquals("https://iareclub-production.up.railway.app",origins.trustedOrigin(railway));
     }
 }

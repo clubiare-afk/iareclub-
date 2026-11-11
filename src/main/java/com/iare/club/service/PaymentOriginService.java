@@ -21,6 +21,9 @@ public class PaymentOriginService {
     }
 
     public String trustedOrigin(HttpServletRequest request) {
+        String browserOrigin = request.getHeader("Origin");
+        String trustedBrowserOrigin = allowedOrigin(browserOrigin);
+        if (trustedBrowserOrigin != null) return trustedBrowserOrigin;
         String forwardedProto = first(request.getHeader("X-Forwarded-Proto"));
         String forwardedHost = first(request.getHeader("X-Forwarded-Host"));
         String scheme = forwardedProto == null ? request.getScheme() : forwardedProto;
@@ -30,6 +33,12 @@ public class PaymentOriginService {
             String candidate = normalize(scheme + "://" + host);
             return allowed.contains(candidate) ? candidate : fallback;
         } catch (IllegalArgumentException ignored) { return fallback; }
+    }
+
+    private String allowedOrigin(String value) {
+        if (value == null || value.isBlank()) return null;
+        try { String candidate=normalize(value);return allowed.contains(candidate)?candidate:null; }
+        catch (IllegalArgumentException ignored) { return null; }
     }
 
     public String safeStoredOrigin(String origin) {
