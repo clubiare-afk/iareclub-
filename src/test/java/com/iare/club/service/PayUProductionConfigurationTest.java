@@ -73,7 +73,7 @@ class PayUProductionConfigurationTest {
 
     @Test
     void paymentOriginComesFromValidatedBrowserOriginOnLocalhostAndRailway() {
-        PaymentOriginService origins = new PaymentOriginService("http://localhost:8080,https://iareclub-production.up.railway.app","https://iareclub-production.up.railway.app");
+        PaymentOriginService origins = new PaymentOriginService("http://localhost:8080,https://iareclub-production.up.railway.app,https://fundrise.shop,https://www.fundrise.shop","https://iareclub-production.up.railway.app");
         MockHttpServletRequest local = new MockHttpServletRequest("POST","/deposit");
         local.addHeader("Origin","http://localhost:8080");
         assertEquals("http://localhost:8080",origins.trustedOrigin(local));
@@ -82,5 +82,20 @@ class PayUProductionConfigurationTest {
         railway.addHeader("X-Forwarded-Host","internal.railway.app");
         railway.addHeader("X-Forwarded-Proto","https");
         assertEquals("https://iareclub-production.up.railway.app",origins.trustedOrigin(railway));
+        MockHttpServletRequest customDomain = new MockHttpServletRequest("POST","/deposit");
+        customDomain.addHeader("Origin","https://www.fundrise.shop");
+        assertEquals("https://www.fundrise.shop",origins.trustedOrigin(customDomain));
+    }
+
+    @Test
+    void verifiedFundrisePaymentReturnsToFundriseDepositPage() {
+        PayUService service = mock(PayUService.class);
+        DepositService deposits = mock(DepositService.class);
+        when(service.processCallback(anyMap())).thenReturn(new PayUService.Result("MM-FUND-100", Deposit.Status.SUCCESSFUL, "captured"));
+        when(deposits.returnOrigin("MM-FUND-100")).thenReturn(Optional.of("https://www.fundrise.shop"));
+        PaymentOriginService origins = new PaymentOriginService("http://localhost:8080,https://iareclub-production.up.railway.app,https://fundrise.shop,https://www.fundrise.shop","https://iareclub-production.up.railway.app");
+        PayUController controller = new PayUController(service, mock(UserService.class), deposits, origins);
+        ModelAndView bridge = controller.callback(Map.of("txnid", "MM-FUND-100"));
+        assertEquals("https://www.fundrise.shop/deposit?payment=success&txnid=MM-FUND-100",bridge.getModel().get("returnUrl"));
     }
 }
