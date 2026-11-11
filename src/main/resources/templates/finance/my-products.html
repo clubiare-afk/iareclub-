@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Products | Money Mint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="finance-page marketplace-dashboard my-products-page">
+<aside th:replace="~{fragments/user-sidebar :: sidebar('my-products')}"></aside>
+<div class="finance-main">
+  <header class="finance-topbar">
+    <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation"><i data-lucide="menu"></i></button>
+    <div><span class="muted-label">YOUR PORTFOLIO</span><h1>My Products</h1></div>
+    <div class="balance-chip">Rewards <b th:text="'₹'+${#numbers.formatDecimal(wallet.rewardBalance,1,2)}">₹0</b></div>
+  </header>
+  <main class="finance-content">
+    <div class="notice success" th:if="${success}"><i data-lucide="circle-check"></i><span th:text="${success}"></span></div>
+    <div class="notice error" th:if="${error}"><i data-lucide="circle-alert"></i><span th:text="${error}"></span></div>
+    <section class="dashboard-section products-portfolio">
+      <div class="dashboard-section-heading portfolio-heading">
+        <div><span class="kicker">ACTIVE INVESTMENTS</span><h2>Your portfolio</h2><p>Track progress and collect available rewards.</p></div>
+        <a class="btn btn-outline-finance" th:href="@{/products}">Explore Products <i data-lucide="arrow-up-right"></i></a>
+      </div>
+      <div class="finance-empty" th:if="${#lists.isEmpty(investments)}">
+        <i data-lucide="briefcase-business"></i><h3>Your portfolio is empty</h3><p>Explore available products to begin.</p>
+        <a class="btn btn-mint" th:href="@{/products}">Explore Products</a>
+      </div>
+      <div class="my-products-grid" th:unless="${#lists.isEmpty(investments)}">
+        <article class="investment-progress-card portfolio-card" th:each="investment,cardStat:${investments}" th:style="'--card-index:'+${cardStat.index}">
+          <div class="portfolio-visual">
+            <img th:src="${investment.productImageUrl}" th:alt="${investment.productName}" loading="lazy" decoding="async">
+            <span class="portfolio-status" th:classappend="${investment.status.name().toLowerCase()}"><i data-lucide="activity"></i><span th:text="${investment.status}">Active</span></span>
+          </div>
+          <div class="portfolio-body">
+            <div class="portfolio-product-title"><small>INVESTMENT PRODUCT</small><h3 th:text="${investment.productName}">Product</h3></div>
+            <div class="portfolio-primary">
+              <div><span>Invested</span><strong th:text="'₹'+${#numbers.formatDecimal(investment.investmentAmount,1,2)}">₹0</strong></div>
+              <div><span>Daily reward</span><strong class="positive" th:text="'₹'+${#numbers.formatDecimal(investment.dailyReward,1,2)}">₹0</strong></div>
+            </div>
+            <div class="portfolio-progress-head"><span th:text="${investment.rewardsCollected}+' of '+${investment.totalDays}+' rewards collected'">Progress</span><b th:text="${investment.progressPercentage}+'%'">0%</b></div>
+            <div class="investment-progress-track"><span th:style="'width:'+${investment.progressPercentage}+'%'"></span></div>
+            <div class="portfolio-metrics">
+              <div><span>Earned</span><b th:text="'₹'+${#numbers.formatDecimal(investment.totalRewardsCollected,1,2)}">₹0</b></div>
+              <div><span>Days remaining</span><b th:text="${investment.remainingDays}">0</b></div>
+              <div><span>Expected return</span><b th:text="'₹'+${#numbers.formatDecimal(investment.projectedReturns,1,2)}">₹0</b></div>
+            </div>
+            <div class="portfolio-reward" th:if="${investment.status.name()=='ACTIVE'}">
+              <div><span>Next reward</span><b class="local-time" th:attr="data-time-target=${(investment.rewardsCollected==0?now:investment.nextRewardAt).toEpochMilli()}">Time</b></div>
+              <strong class="countdown reward-countdown" th:attr="data-countdown-target=${(investment.rewardsCollected==0?now:investment.nextRewardAt).toEpochMilli()},data-server-now=${now.toEpochMilli()}">00:00:00</strong>
+            </div>
+            <form th:if="${investment.status.name()=='ACTIVE'}" th:action="@{/investments/{id}/collect(id=${investment.id})}" method="post">
+              <input type="hidden" name="returnTo" value="my-products">
+              <button class="btn btn-mint collect-button" type="submit" th:disabled="${investment.rewardsCollected>0 and now.isBefore(investment.nextRewardAt)}"><i data-lucide="sparkles"></i><span th:text="${investment.rewardsCollected>0 and now.isBefore(investment.nextRewardAt)}?'Available after countdown':'Collect Reward'">Collect Reward</span></button>
+            </form>
+            <div class="investment-complete" th:if="${investment.status.name()=='COMPLETED'}"><i data-lucide="circle-check-big"></i><div><b>Completed</b><span>All rewards have been collected.</span></div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script><script th:src="@{/js/app.js}"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside class="sidebar finance-sidebar" id="sidebar" th:fragment="sidebar(activePage)">
+    <a class="brand" th:href="@{/dashboard}">
+        <span class="brand-mark"><i data-lucide="sprout"></i></span>
+        <span>Money <b>Mint</b></span>
+    </a>
+    <nav>
+        <span class="nav-label">OVERVIEW</span>
+        <a th:href="@{/dashboard}" th:classappend="${activePage == 'dashboard'} ? 'active'"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <span class="nav-label">MONEY</span>
+        <a th:href="@{/wallet}" th:classappend="${activePage == 'wallet'} ? 'active'"><i data-lucide="wallet-cards"></i> Wallet</a>
+        <a th:href="@{/deposit}" th:classappend="${activePage == 'deposit'} ? 'active'"><i data-lucide="circle-plus"></i> Deposit</a>
+        <a th:href="@{/products}" th:classappend="${activePage == 'products'} ? 'active'"><i data-lucide="package-open"></i> Products</a>
+        <a th:href="@{/my-products}" th:classappend="${activePage == 'my-products'} ? 'active'"><i data-lucide="briefcase-business"></i> My Products</a>
+        <a th:href="@{/scratch}" th:classappend="${activePage == 'scratch'} ? 'active'"><i data-lucide="badge-indian-rupee"></i> Scratch & Earn</a>
+        <a th:href="@{/refer-and-earn}" th:classappend="${activePage == 'referrals'} ? 'active'"><i data-lucide="users-round"></i> Refer & Earn</a>
+        <a th:href="@{/withdrawal}" th:classappend="${activePage == 'withdrawal'} ? 'active'"><i data-lucide="landmark"></i> Withdraw</a>
+        <a th:href="@{/activity}" th:classappend="${activePage == 'activity'} ? 'active'"><i data-lucide="list-filter"></i> Activity</a>
+    </nav>
+    <form th:action="@{/logout}" method="post"><button type="submit"><i data-lucide="log-out"></i> Log out</button></form>
+</aside>
+</body>
+</html>

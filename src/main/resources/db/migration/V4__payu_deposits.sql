@@ -1,0 +1,11 @@
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS payu_payment_id VARCHAR(100);
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS bank_reference VARCHAR(150);
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS gateway_status VARCHAR(40);
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS gateway_message VARCHAR(500);
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS wallet_balance_after NUMERIC(18,2);
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+UPDATE deposits SET updated_at=COALESCE(completed_at,created_at) WHERE updated_at IS NULL;
+ALTER TABLE deposits ALTER COLUMN updated_at SET NOT NULL;
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_deposit_pending_reconcile ON deposits(status,updated_at) WHERE status='PENDING';
+CREATE INDEX IF NOT EXISTS idx_deposit_payu_id ON deposits(payu_payment_id) WHERE payu_payment_id IS NOT NULL;

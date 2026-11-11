@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title th:text="${editing}?'Edit advertisement | Money Mint':'Add advertisement | Money Mint'">Advertisement | Money Mint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"><link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="admin-page">
+<aside class="admin-sidebar compact"><a class="brand" th:href="@{/admin/dashboard}"><span class="brand-mark"><i data-lucide="sprout"></i></span><span>Money <b>Mint</b></span></a><div class="console-label">ADMIN CONSOLE</div><nav><a th:href="@{/admin/dashboard}"><i data-lucide="layout-dashboard"></i> Overview</a><a class="active" th:href="@{/admin/advertisements}"><i data-lucide="gallery-horizontal-end"></i> Advertisements</a></nav><div class="admin-side-foot"><form th:action="@{/admin/logout}" method="post"><button><i data-lucide="log-out"></i> Log out</button></form></div></aside>
+<div class="admin-main"><header class="admin-topbar"><a class="admin-back-link" th:href="@{/admin/advertisements}"><i data-lucide="arrow-left"></i> Back to advertisements</a></header>
+<main class="advertisement-form-page">
+    <div class="form-page-heading"><span class="kicker" th:text="${editing}?'UPDATE CAMPAIGN':'NEW CAMPAIGN'">ADVERTISEMENT</span><h1 th:text="${editing}?'Edit advertisement':'Add advertisement'">Add advertisement</h1><p>Use a publicly accessible HTTP or HTTPS image. The preview uses the exact URL entered below.</p></div>
+    <form class="advertisement-admin-form" th:action="${editing}?@{/admin/advertisements/{id}(id=${advertisement.id})}:@{/admin/advertisements}" th:object="${advertisement}" method="post">
+        <section class="form-panel"><div class="form-panel-title"><span><i data-lucide="image-plus"></i></span><div><h2>Advertisement image</h2><p>Dashboard popup content</p></div></div>
+            <div class="field"><label for="advertisementImageUrl">Image URL</label><div class="input-wrap"><i data-lucide="link"></i><input id="advertisementImageUrl" th:field="*{imageUrl}" type="url" required maxlength="1000" placeholder="https://example.com/advertisement.jpg"></div><small class="field-error" th:errors="*{imageUrl}"></small><span class="field-help">The image should be suitable for both mobile and desktop screens.</span></div>
+            <label class="active-toggle"><input type="checkbox" th:field="*{active}"><span></span><div><b>Active advertisement</b><small>Eligible to appear on the user dashboard</small></div></label>
+        </section>
+        <aside class="advertisement-live-preview"><span class="muted-label">LIVE PREVIEW</span><div><img id="advertisementPreview" alt="Advertisement preview"><span id="advertisementPreviewEmpty"><i data-lucide="image"></i> Enter a valid image URL to preview</span></div></aside>
+        <div class="form-actions"><a class="btn btn-cancel" th:href="@{/admin/advertisements}">Cancel</a><button class="btn btn-mint" type="submit"><i data-lucide="save"></i><span th:text="${editing}?'Save changes':'Add advertisement'">Save</span></button></div>
+    </form>
+</main></div>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script><script th:src="@{/js/app.js}"></script>
+</body></html>

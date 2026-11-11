@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Withdrawal review | Money Mint</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="admin-page detail-page">
+<main class="transaction-detail-shell wide">
+    <a class="admin-back-link" th:href="@{/admin/withdrawals}">
+        <i data-lucide="arrow-left"></i> Back to withdrawals
+    </a>
+
+    <div class="notice success" th:if="${success}">
+        <i data-lucide="circle-check"></i><span th:text="${success}"></span>
+    </div>
+    <div class="notice error" th:if="${error}">
+        <i data-lucide="circle-alert"></i><span th:text="${error}"></span>
+    </div>
+
+    <article class="transaction-detail">
+        <header>
+            <span class="stat-icon gold"><i data-lucide="banknote-arrow-up"></i></span>
+            <div>
+                <span class="muted-label">AUTHORIZED PAYOUT REVIEW</span>
+                <h1 th:text="${withdrawal.reference}">Withdrawal</h1>
+            </div>
+            <span class="tx-status" th:classappend="${withdrawal.status.name().toLowerCase()}"
+                  th:text="${withdrawal.status}">Status</span>
+        </header>
+
+        <div class="withdrawal-detail-grid">
+            <section>
+                <div class="detail-amount">
+                    <span>REQUESTED AMOUNT</span>
+                    <strong th:text="'₹'+${#numbers.formatDecimal(withdrawal.amount,1,2)}">₹0</strong>
+                </div>
+                <dl>
+                    <div><dt>User</dt><dd th:text="${withdrawal.user.fullName}">User</dd></div>
+                    <div><dt>Email</dt><dd th:text="${withdrawal.user.email}">Email</dd></div>
+                    <div><dt>Requested</dt><dd th:text="${#temporals.format(withdrawal.requestedAt,'dd MMM yyyy, HH:mm:ss')}">Date</dd></div>
+                    <div><dt>Payout reference</dt><dd th:text="${withdrawal.payoutReference?:'Not provided'}">—</dd></div>
+                </dl>
+            </section>
+
+            <section class="sensitive-bank">
+                <div class="sensitive-label"><i data-lucide="eye"></i> AUTHORIZED BANK DETAILS</div>
+                <dl>
+                    <div><dt>Account holder</dt><dd th:text="${withdrawal.bankAccount.accountHolderName}">Holder</dd></div>
+                    <div><dt>Bank name</dt><dd th:text="${withdrawal.bankAccount.bankName}">Bank</dd></div>
+                    <div><dt>Account number</dt><dd class="mono" th:text="${fullAccountNumber}">Number</dd></div>
+                    <div><dt>IFSC</dt><dd class="mono" th:text="${ifsc}">IFSC</dd></div>
+                </dl>
+                <p><i data-lucide="shield-alert"></i> Sensitive values are decrypted only for this authorized admin view. Do not copy them into remarks or logs.</p>
+            </section>
+        </div>
+
+        <form class="status-action-form"
+              th:if="${withdrawal.status.name()=='PENDING' or withdrawal.status.name()=='PROCESSING'}"
+              th:action="@{/admin/withdrawals/{id}/status(id=${withdrawal.id})}"
+              method="post">
+            <h2>Update payout status</h2>
+            <div class="three-fields">
+                <div>
+                    <label>New status</label>
+                    <select name="status" id="withdrawalStatus" required>
+                        <option value="">Select permitted status</option>
+                        <option th:if="${withdrawal.status.name()=='PENDING'}" value="PROCESSING">Processing</option>
+                        <option value="SUCCESSFUL">Successful</option>
+                        <option value="FAILED">Failed</option>
+                        <option value="REFUNDED">Refunded</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Verified payout reference</label>
+                    <input id="payoutReference" name="payoutReference" maxlength="120"
+                           placeholder="Required for Successful">
+                </div>
+                <div>
+                    <label>Professional remarks</label>
+                    <textarea name="remarks" maxlength="500" required
+                              placeholder="Reason and supporting context"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-mint">Confirm status change <i data-lucide="arrow-right"></i></button>
+            <p>Choose Successful only after the bank payout has been completed. A verified payout reference is required. Failed or Refunded returns reserved funds exactly once.</p>
+        </form>
+
+        <div class="compliance-note"
+             th:unless="${withdrawal.status.name()=='PENDING' or withdrawal.status.name()=='PROCESSING'}">
+            <i data-lucide="lock-keyhole"></i>
+            <div><b>Final state</b><p>This withdrawal has reached a terminal status and cannot be transitioned again.</p></div>
+        </div>
+    </article>
+</main>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<script>
+    lucide.createIcons();
+    const statusSelect = document.getElementById('withdrawalStatus');
+    const payoutReference = document.getElementById('payoutReference');
+    statusSelect?.addEventListener('change', () => {
+        payoutReference.required = statusSelect.value === 'SUCCESSFUL';
+    });
+</script>
+</body>
+</html>

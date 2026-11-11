@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Advertisement Management | Money Mint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="admin-page">
+<aside class="admin-sidebar" id="sidebar">
+    <a class="brand" th:href="@{/admin/dashboard}"><span class="brand-mark"><i data-lucide="sprout"></i></span><span>Money <b>Mint</b></span></a>
+    <div class="console-label">ADMIN CONSOLE</div>
+    <nav>
+        <a th:href="@{/admin/dashboard}"><i data-lucide="layout-dashboard"></i> Overview</a>
+        <a th:href="@{/admin/dashboard#products}"><i data-lucide="package-open"></i> Products</a>
+        <a th:href="@{/admin/users}"><i data-lucide="users"></i> Users</a>
+        <a class="active" th:href="@{/admin/advertisements}"><i data-lucide="gallery-horizontal-end"></i> Advertisements</a>
+    </nav>
+    <div class="admin-side-foot"><form th:action="@{/admin/logout}" method="post"><button><i data-lucide="log-out"></i> Log out</button></form></div>
+</aside>
+<div class="admin-main">
+    <header class="admin-topbar"><button class="mobile-menu" id="mobileMenu" aria-label="Open navigation"><i data-lucide="menu"></i></button><div><span class="muted-label">CAMPAIGN CONTROL</span><h1>Advertisement Management</h1></div></header>
+    <main class="admin-content">
+        <div class="notice success" th:if="${success}"><i data-lucide="circle-check"></i><span th:text="${success}"></span></div>
+        <div class="admin-welcome"><div><span class="kicker">DASHBOARD PROMOTIONS</span><h2>Manage popup advertisements.</h2><p>The most recently updated active advertisement appears whenever a user opens or refreshes the dashboard.</p></div><a class="btn btn-mint" th:href="@{/admin/advertisements/new}"><i data-lucide="plus"></i> Add advertisement</a></div>
+        <section class="admin-panel advertisement-panel">
+            <div class="admin-panel-head"><div><span class="muted-label">ADVERTISEMENT LIBRARY</span><h2>Configured advertisements</h2><p>Enable, disable, edit, preview, or permanently delete an advertisement.</p></div></div>
+            <div class="empty-products" th:if="${#lists.isEmpty(advertisements)}"><span><i data-lucide="image-off"></i></span><h3>No advertisements yet</h3><p>Add an image URL to create your first dashboard popup.</p><a class="btn btn-mint" th:href="@{/admin/advertisements/new}">Create advertisement</a></div>
+            <div class="advertisement-admin-grid" th:unless="${#lists.isEmpty(advertisements)}">
+                <article class="advertisement-admin-card" th:each="advertisement:${advertisements}">
+                    <div class="advertisement-admin-image"><img th:src="${advertisement.imageUrl}" alt="Advertisement preview" loading="lazy"><div class="advertisement-image-error"><i data-lucide="image-off"></i><span>Image could not be loaded</span></div><span class="table-status" th:classappend="${advertisement.active}?'active':'inactive'" th:text="${advertisement.active}?'Active':'Disabled'">Active</span></div>
+                    <div class="advertisement-admin-body"><p th:text="${advertisement.imageUrl}" th:title="${advertisement.imageUrl}">Image URL</p><small th:text="'Updated '+${#temporals.format(advertisement.updatedAt,'dd MMM yyyy, HH:mm')}">Updated</small><div class="advertisement-actions"><a class="btn btn-dark-mint" th:href="@{/admin/advertisements/{id}/edit(id=${advertisement.id})}"><i data-lucide="pencil"></i> Edit</a><form th:action="@{/admin/advertisements/{id}/toggle(id=${advertisement.id})}" method="post"><button class="btn btn-ad-toggle" type="submit"><i th:attr="data-lucide=${advertisement.active}?'pause':'play'"></i><span th:text="${advertisement.active}?'Disable':'Enable'">Toggle</span></button></form><form th:action="@{/admin/advertisements/{id}/delete(id=${advertisement.id})}" method="post"><button class="btn btn-ad-delete" type="submit" aria-label="Delete advertisement"><i data-lucide="trash-2"></i></button></form></div></div>
+                </article>
+            </div>
+        </section>
+    </main>
+</div>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script><script th:src="@{/js/app.js}"></script>
+</body></html>

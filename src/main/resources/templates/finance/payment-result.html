@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Payment status | Money Mint</title><link rel="stylesheet" th:href="@{/css/app.css}">
+  <meta th:if="${result.status.name()=='PENDING'}" http-equiv="refresh" th:content="'3;url=/payments/payu/status?txnid='+${result.transactionId}">
+</head>
+<body class="finance-page"><main class="transaction-detail-shell"><article class="transaction-detail">
+  <header><div><span class="muted-label">PAYU PAYMENT</span><h1 th:text="${result.status.name()=='SUCCESSFUL'?'Payment successful':(result.status.name()=='PENDING'?'Confirming your payment':(result.status.name()=='CANCELLED'?'Payment cancelled':'Payment failed'))}">Payment status</h1></div><span class="tx-status" th:classappend="${result.status.name().toLowerCase()}" th:text="${result.status}">Status</span></header>
+  <p th:if="${result.status.name()=='SUCCESSFUL'}">PayU confirmed the payment and your deposit wallet was credited exactly once.</p>
+  <p th:if="${result.status.name()=='PENDING'}">Payment received. Please keep this page open while Money Mint confirms it securely with PayU.</p>
+  <p th:if="${result.status.name()=='FAILED' or result.status.name()=='CANCELLED'}">Your wallet was not credited.</p>
+  <dl><div><dt>Transaction ID</dt><dd class="mono" th:text="${result.transactionId}">ID</dd></div><div><dt>Details</dt><dd th:text="${result.message==null?'Verification completed':result.message}">Details</dd></div></dl>
+  <a class="btn btn-mint" th:href="@{/deposit}">Return to deposits</a>
+</article></main></body></html>

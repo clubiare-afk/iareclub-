@@ -1,0 +1,10 @@
+package com.iare.club.controller;
+import com.iare.club.entity.*;import com.iare.club.service.*;import java.util.*;import org.springframework.http.*;import org.springframework.security.core.Authentication;import org.springframework.stereotype.Controller;import org.springframework.ui.Model;import org.springframework.web.bind.annotation.*;
+@Controller public class ScratchController{
+ private final ScratchService scratches;private final UserService users;private final WalletService wallets;
+ public ScratchController(ScratchService s,UserService u,WalletService w){scratches=s;users=u;wallets=w;}
+ private AppUser user(Authentication auth){return users.findByEmail(auth.getName());}
+ @GetMapping("/scratch") String page(Authentication auth,Model model){AppUser user=user(auth);ScratchService.View view=scratches.view(user);model.addAttribute("wallet",wallets.getOrCreate(user));model.addAttribute("scratchView",view);return "finance/scratch";}
+ @GetMapping("/scratch/status") @ResponseBody Map<String,Object> status(Authentication auth){ScratchService.Availability a=scratches.availability(user(auth));Map<String,Object> result=new LinkedHashMap<>();result.put("eligible",a.eligible());result.put("serverNow",a.serverNow().toString());result.put("nextAvailableAt",a.nextAvailableAt()==null?null:a.nextAvailableAt().toString());return result;}
+ @PostMapping("/scratch/reveal") @ResponseBody ResponseEntity<Map<String,Object>> reveal(Authentication auth){try{ScratchReward reward=scratches.scratch(user(auth));return ResponseEntity.ok(Map.of("success",true,"amount",reward.getAmount(),"reference",reward.getTransactionReference(),"scratchedAt",reward.getScratchedAt().toString(),"nextAvailableAt",reward.getScratchedAt().plus(java.time.Duration.ofHours(24)).toString()));}catch(ScratchService.ScratchCooldownException e){return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("success",false,"message",e.getMessage(),"nextAvailableAt",e.getNextAvailableAt().toString()));}catch(RuntimeException e){return ResponseEntity.badRequest().body(Map.of("success",false,"message",e.getMessage()));}}
+}
