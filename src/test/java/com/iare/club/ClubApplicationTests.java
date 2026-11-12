@@ -78,6 +78,23 @@ class ClubApplicationTests {
 			.andExpect(redirectedUrl("http://localhost/deposit?payment=pending&txnid=MM-PAYMENT-RETURN&continue"));
 	}
 
+	@Test void userCanLogInAgainAfterLogoutWithoutAnExpiredSessionError() throws Exception {
+		mvc.perform(post("/signup").with(csrf()).param("fullName","Repeat Login User")
+			.param("email","repeat-login@example.com").param("password","Secure123"));
+		MockHttpSession session=(MockHttpSession)mvc.perform(post("/login").with(csrf())
+			.param("email","repeat-login@example.com").param("password","Secure123"))
+			.andExpect(status().isSeeOther()).andExpect(redirectedUrl("/dashboard"))
+			.andReturn().getRequest().getSession(false);
+		mvc.perform(post("/logout").session(session).with(csrf()))
+			.andExpect(status().isSeeOther()).andExpect(redirectedUrl("/login?logout"));
+		mvc.perform(get("/login").session(session)).andExpect(status().isOk());
+		session=(MockHttpSession)mvc.perform(post("/login").session(session).with(csrf())
+			.param("email","repeat-login@example.com").param("password","Secure123"))
+			.andExpect(status().isSeeOther()).andExpect(redirectedUrl("/dashboard"))
+			.andReturn().getRequest().getSession(false);
+		mvc.perform(get("/dashboard").session(session)).andExpect(status().isOk());
+	}
+
 	@Test void loginSessionCookieSupportsSecurePayuCrossSiteReturn() {
 		assertEquals("true",environment.getProperty("server.servlet.session.cookie.http-only"));
 		assertEquals("true",environment.getProperty("server.servlet.session.cookie.secure"));

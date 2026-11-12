@@ -111,3 +111,23 @@ html,body{max-width:100%;overflow-x:hidden}img,video,canvas{max-width:100%}butto
 @media(max-width:380px){.finance-content,.admin-content,.dash-content,.product-form-page{padding:8px}.finance-topbar,.admin-topbar,.dash-header{padding:10px 8px}.finance-panel-head,.admin-panel-head{padding:14px 12px}.deposit-history{padding:8px}.deposit-history article{grid-template-columns:36px minmax(0,1fr);grid-template-areas:"icon details" ". status" ". time" ". action";padding:12px 10px}.deposit-history .tx-status,.deposit-history time,.deposit-history form{justify-self:start;text-align:left;max-width:100%}.quick-amounts{gap:7px}.deposit-form-panel,.withdraw-request-panel,.bank-form,.deposit-steps{padding:15px 12px}.payment-success-popup{padding:8px}.payment-success-card{padding-inline:16px}.payment-success-card dl>div{display:block}.payment-success-card dd{max-width:100%;margin-top:4px;text-align:left}.credit-modal-actions .btn{white-space:normal}.portfolio-metrics{grid-template-columns:1fr}.portfolio-metrics>div:last-child{grid-column:auto}.holding-stats{grid-template-columns:1fr}.referral-link-box input{width:100%}}
 /* Payment success amount heading */
 .payment-success-card .payment-success-amount{font:800 1.18rem Manrope,sans-serif;color:#07815f;margin:0 0 8px}
+/* Fundrise brand logo */
+.brand{display:inline-flex;line-height:0}
+.brand .brand-mark{width:142px;height:58px;padding:0;border:0;border-radius:0;background:transparent url('/images/fundrise-logo.png') center/contain no-repeat;transform:none;box-shadow:none;flex:none}
+.brand .brand-mark svg{display:none}
+.brand>span:last-child{display:none}
+.navbar .brand .brand-mark{width:150px;height:62px}
+.footer-top .brand .brand-mark{width:160px;height:66px}
+@media(max-width:600px){.brand .brand-mark,.navbar .brand .brand-mark{width:120px;height:50px}.sidebar .brand .brand-mark,.finance-sidebar .brand .brand-mark,.admin-sidebar .brand .brand-mark{width:165px;height:70px}}
+/* Public FundRise footer */
+body>footer{position:relative;overflow:hidden;background:linear-gradient(135deg,#031a21 0%,#07382f 55%,#08262d 100%);border-top:1px solid rgba(57,217,156,.22);box-shadow:0 -16px 50px rgba(3,26,33,.14)}
+body>footer:before{content:'';position:absolute;width:430px;height:430px;right:-180px;top:-290px;border-radius:50%;background:radial-gradient(circle,rgba(57,217,156,.24),transparent 68%)}
+body>footer .container{position:relative;z-index:1}.footer-top .brand .brand-mark{width:190px;height:82px}.footer-top p{max-width:360px;line-height:1.7;color:#b0c8c1}.footer-links a{color:#d9e9e4}.footer-links a:hover{color:#65e7b5}.footer-bottom{color:#86a69e}
+@media(max-width:600px){body>footer{padding-top:3rem}.footer-top .brand .brand-mark{width:190px;height:82px}}
+/* Login logo contrast panel */
+.login-page:before{content:'';position:fixed;z-index:1;inset:0 0 auto;height:96px;background:linear-gradient(110deg,#031820,#073b33 62%,#09272d);border-bottom:1px solid rgba(57,217,156,.24);box-shadow:0 8px 28px rgba(3,26,33,.2)}
+.login-page .auth-brand{left:clamp(20px,4vw,48px);top:12px;padding:0;background:transparent;border:0;box-shadow:none}
+.login-page .auth-brand .brand-mark{width:180px;height:72px;background-size:contain}
+.login-page .back-link{position:fixed;z-index:3;top:38px;right:clamp(20px,4vw,48px);color:#d8ebe5;font-weight:700}.login-page .back-link:hover{color:#65e7b5}
+.login-page .auth-form-wrap{padding-top:7.5rem}
+@media(max-width:600px){.login-page:before{height:84px}.login-page .auth-brand{left:12px;top:8px}.login-page .auth-brand .brand-mark{width:132px;height:58px}.login-page .back-link{top:31px;right:14px;font-size:.72rem}.login-page .auth-form-wrap{padding-top:7rem}}

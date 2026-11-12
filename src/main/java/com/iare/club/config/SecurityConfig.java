@@ -14,6 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 
 @Configuration
 public class SecurityConfig {
@@ -75,11 +77,22 @@ public class SecurityConfig {
                 .requestMatchers("/","/signup","/login","/css/**","/js/**","/images/**","/error","/payments/payu/callback","/payments/payu/webhook").permitAll()
                 .requestMatchers("/dashboard/**","/products/**","/my-products/**","/scratch/**","/wallet/**","/deposit/**","/investments/**","/api/investments/**","/withdrawal/**","/activity/**","/refer-and-earn/**","/payments/payu/status","/payments/payu/result","/api/advertisements/active","/api/carousel-banners/active").hasRole("USER").anyRequest().denyAll())
             .formLogin(form->form.loginPage("/login").usernameParameter("email")
-                .defaultSuccessUrl("/dashboard",false).failureUrl("/login?error").permitAll())
-            .logout(logout->logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout")
+                .successHandler((request,response,authentication)->{
+                    HttpSessionRequestCache cache=new HttpSessionRequestCache();
+                    SavedRequest saved=cache.getRequest(request,response);
+                    String target=saved==null?request.getContextPath()+"/dashboard":saved.getRedirectUrl();
+                    cache.removeRequest(request,response);
+                    response.setStatus(303);
+                    response.setHeader("Location",target);
+                }).failureUrl("/login?error").permitAll())
+            .logout(logout->logout.logoutUrl("/logout").logoutSuccessHandler((request,response,authentication)->{
+                    response.setStatus(303);
+                    response.setHeader("Location",request.getContextPath()+"/login?logout");
+                })
                 .addLogoutHandler((request,response,authentication)->{if(request.getSession(false)!=null)request.getSession(false).removeAttribute(USER_CONTEXT);})
+                .addLogoutHandler((request,response,authentication)->new HttpSessionRequestCache().removeRequest(request,response))
                 .invalidateHttpSession(false).clearAuthentication(true))
-            .sessionManagement(session->session.sessionFixation(fix->fix.migrateSession()).maximumSessions(1).maxSessionsPreventsLogin(false))
+            .sessionManagement(session->session.sessionFixation(fix->fix.migrateSession()))
             .exceptionHandling(ex->ex.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")));
         http.csrf(csrf->csrf.ignoringRequestMatchers("/payments/payu/callback","/payments/payu/webhook"));
         return http.build();
