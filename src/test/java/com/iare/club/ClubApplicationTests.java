@@ -124,6 +124,19 @@ class ClubApplicationTests {
 			.andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("investor@example.com")));
 	}
 
+	@Test void deletingAProductArchivesItWithoutBreakingCatalogueQueries() {
+		InvestmentProduct product=new InvestmentProduct();product.setName("Delete Safe Product");
+		product.setImageUrl("https://example.com/delete-safe.jpg");
+		product.setOriginalPrice(new BigDecimal("500.00"));product.setDiscountPrice(new BigDecimal("400.00"));
+		product.setDailyEarnings(new BigDecimal("20.00"));product.setTotalDays(10);product.setActive(true);
+		product=productService.save(product);long id=product.getId();
+		productService.delete(id);
+		assertFalse(productService.findAll().stream().anyMatch(item->item.getId().equals(id)));
+		assertFalse(productService.findActive().stream().anyMatch(item->item.getId().equals(id)));
+		InvestmentProduct archived=products.findById(id).orElseThrow();
+		assertTrue(archived.isArchived());assertFalse(archived.isActive());
+	}
+
 	@Test void adminAndUserCanStayLoggedInInTheSameBrowserSession() throws Exception {
 		MockHttpSession session=(MockHttpSession)mvc.perform(post("/signup").with(csrf())
 			.param("fullName","Dual Session User").param("email","dual@example.com").param("password","Secure123"))

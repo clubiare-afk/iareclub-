@@ -17,7 +17,7 @@ public class PaymentOriginService {
         for (String origin : origins.split(",")) configured.add(normalize(origin));
         this.allowed = Set.copyOf(configured);
         this.fallback = normalize(fallback);
-        if (!allowed.contains(this.fallback)) throw new IllegalStateException("Money Mint site origin must be in the payment return-origin allowlist");
+        if (!allowed.contains(this.fallback)) throw new IllegalStateException("FundRise site origin must be in the payment return-origin allowlist");
     }
 
     public String trustedOrigin(HttpServletRequest request) {

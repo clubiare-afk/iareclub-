@@ -1,6 +1,6 @@
-# Money Mint
+# FundRise
 
-Money Mint is a responsive Spring Boot fintech platform with separate user/admin authentication, product management, a two-balance wallet, demo deposits, investments, scheduled rewards, encrypted bank details, withdrawals, transaction history, and admin review workflows. Payments and returns remain simulations until a real provider is integrated.
+FundRise is a responsive Spring Boot fintech platform with separate user/admin authentication, product management, a two-balance wallet, demo deposits, investments, scheduled rewards, encrypted bank details, withdrawals, transaction history, and admin review workflows. Payments and returns remain simulations until a real provider is integrated.
 
 ## Configure Supabase
 

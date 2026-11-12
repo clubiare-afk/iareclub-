@@ -47,14 +47,15 @@ class AdminWalletFeatureTests {
         assertEquals(Deposit.Status.SUCCESSFUL, deposit.getStatus());
         assertNull(deposit.getPayuPaymentId());
         assertNull(deposit.getGatewayStatus());
-        assertEquals("WALLET", deposit.getDisplayMethod());
-        assertEquals("Money Mint", deposit.getDisplayProvider());
+        assertEquals("Wallet Deposit", deposit.getDisplayMethod());
+        assertEquals("FundRise Internal", deposit.getDisplayProvider());
         assertTrue(deposit.getDisplayPaymentId().matches("\\d{10}"));
 
         WalletTransaction transaction = transactions.findByReference(first.transactionId()).orElseThrow();
-        assertEquals(WalletTransaction.Type.ADMIN_CREDIT, transaction.getType());
+        assertEquals(WalletTransaction.Type.WALLET_DEPOSIT, transaction.getType());
         assertEquals("ADMIN_CREDIT", transaction.getPaymentMethod());
         assertEquals("admin@gmail.com", transaction.getAdminIdentity());
+        assertTrue(first.transactionId().matches("MM[A-F0-9]{20}"));
         assertEquals(0, BigDecimal.ZERO.compareTo(transaction.getBalanceBefore()));
         assertEquals(0, new BigDecimal("1250.50").compareTo(transaction.getBalanceAfter()));
         assertTrue(audits.existsByTransactionReference(first.transactionId()));
@@ -62,7 +63,7 @@ class AdminWalletFeatureTests {
                 .filter(item -> item.getPaymentReference().equals(first.transactionId())).count());
         mvc.perform(get("/deposit").with(user(user.getEmail()).roles("USER")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Money Mint: " + deposit.getDisplayPaymentId())))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("FundRise Internal: " + deposit.getDisplayPaymentId())))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Administrator credit"))));
     }
 
@@ -89,7 +90,7 @@ class AdminWalletFeatureTests {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"amount\":500.25,\"requestId\":\"" + requestId + "\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.credited").value(true))
                 .andExpect(jsonPath("$.newBalance").value(500.25))
-                .andExpect(jsonPath("$.transactionId").value(org.hamcrest.Matchers.startsWith("ADM")));
+                .andExpect(jsonPath("$.transactionId").value(org.hamcrest.Matchers.matchesPattern("MM[A-F0-9]{20}")));
     }
 
     private AppUser register(String name, String email) {

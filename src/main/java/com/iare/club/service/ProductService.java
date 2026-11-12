@@ -15,11 +15,11 @@ public class ProductService {
 
     @Cacheable(cacheNames = "products", sync = true)
     @Transactional(readOnly = true)
-    public List<InvestmentProduct> findAll() { return List.copyOf(products.findAllByOrderByCreatedAtDesc()); }
+    public List<InvestmentProduct> findAll() { return List.copyOf(products.findAllByArchivedFalseOrderByCreatedAtDesc()); }
 
     @Cacheable(cacheNames = "activeProducts", sync = true)
     @Transactional(readOnly = true)
-    public List<InvestmentProduct> findActive() { return List.copyOf(products.findByActiveTrueOrderByCreatedAtDesc()); }
+    public List<InvestmentProduct> findActive() { return List.copyOf(products.findByActiveTrueAndArchivedFalseOrderByCreatedAtDesc()); }
 
     @Transactional(readOnly = true)
     public InvestmentProduct find(long id) { return products.findById(id).orElseThrow(() -> new ProductNotFoundException(id)); }
@@ -40,14 +40,14 @@ public class ProductService {
 
     @CacheEvict(cacheNames = {"products", "activeProducts"}, allEntries = true)
     @Transactional
-    public void delete(long id) { if (!products.existsById(id)) throw new ProductNotFoundException(id); products.deleteById(id); }
+    public void delete(long id) { InvestmentProduct product=find(id); product.setActive(false); product.setArchived(true); products.save(product); }
 
     @CacheEvict(cacheNames = {"products", "activeProducts"}, allEntries = true)
     @Transactional
     public InvestmentProduct toggleActive(long id) { InvestmentProduct product = find(id); product.setActive(!product.isActive()); return products.save(product); }
 
     public long count() { return products.count(); }
-    public long countActive() { return products.countByActiveTrue(); }
+    public long countActive() { return products.countByActiveTrueAndArchivedFalse(); }
     private void normalize(InvestmentProduct product) { product.setName(product.getName().strip().replaceAll("\\s+", " ")); product.setImageUrl(product.getImageUrl().strip()); }
 
     public static class ProductNotFoundException extends RuntimeException {

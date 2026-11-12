@@ -1,0 +1,10 @@
+package com.iare.club.controller;
+import com.iare.club.entity.SupportTicket;import com.iare.club.service.SupportTicketService;import org.springframework.security.core.Authentication;import org.springframework.stereotype.Controller;import org.springframework.ui.Model;import org.springframework.web.bind.annotation.*;import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+@Controller @RequestMapping("/admin/support")
+public class AdminSupportController{
+ private final SupportTicketService support;public AdminSupportController(SupportTicketService support){this.support=support;}
+ @GetMapping String list(@RequestParam(required=false)SupportTicket.Status status,@RequestParam(defaultValue="")String q,@RequestParam(defaultValue="0")int page,Model model){var result=support.adminTickets(status,q,page);model.addAttribute("page",result);model.addAttribute("tickets",result.getContent());model.addAttribute("statuses",SupportTicket.Status.values());model.addAttribute("selectedStatus",status);model.addAttribute("q",q);return "admin/support/index";}
+ @GetMapping("/{id}")String detail(@PathVariable long id,Model model){model.addAttribute("ticket",support.adminTicket(id));model.addAttribute("statuses",SupportTicket.Status.values());return "admin/support/detail";}
+ @PostMapping("/{id}/replies")String reply(Authentication auth,@PathVariable long id,@RequestParam String message,RedirectAttributes flash){try{support.adminReply(id,auth.getName(),message);flash.addFlashAttribute("success","Reply sent to the user.");}catch(RuntimeException e){flash.addFlashAttribute("error",e.getMessage());}return "redirect:/admin/support/"+id;}
+ @PostMapping("/{id}/status")String status(Authentication auth,@PathVariable long id,@RequestParam SupportTicket.Status status,RedirectAttributes flash){try{support.updateStatus(id,status,auth.getName());flash.addFlashAttribute("success","Ticket status updated.");}catch(RuntimeException e){flash.addFlashAttribute("error",e.getMessage());}return "redirect:/admin/support/"+id;}
+}

@@ -51,7 +51,7 @@ public class AdminController {
     }
 
     @PostMapping("/admin/products/{id}/delete")
-    String delete(@PathVariable long id,RedirectAttributes flash){products.delete(id);flash.addFlashAttribute("success","Product deleted successfully.");return "redirect:/admin/dashboard#products";}
+    String delete(@PathVariable long id,RedirectAttributes flash){products.delete(id);flash.addFlashAttribute("success","Product deleted from the catalogue. Existing customer investment records remain protected.");return "redirect:/admin/dashboard#products";}
 
     @PostMapping("/admin/products/{id}/toggle")
     String toggle(@PathVariable long id,RedirectAttributes flash){

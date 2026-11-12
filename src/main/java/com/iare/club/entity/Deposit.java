@@ -45,8 +45,8 @@ public class Deposit {
         return String.format("%010d",checksum.getValue());
     }
     @Transient
-    public String getDisplayMethod(){return "ADMIN_CREDIT".equals(paymentMethod)?"WALLET":paymentMethod;}
+    public String getDisplayMethod(){return "ADMIN_CREDIT".equals(paymentMethod)?"Wallet Deposit":paymentMethod;}
     @Transient
-    public String getDisplayProvider(){return "ADMIN_CREDIT".equals(paymentMethod)?"Money Mint":"PayU";}
+    public String getDisplayProvider(){return "ADMIN_CREDIT".equals(paymentMethod)?"FundRise Internal":"PayU";}
     public Long getId(){return id;} public AppUser getUser(){return user;} public BigDecimal getAmount(){return amount;} public String getPaymentReference(){return paymentReference;} public String getReturnOrigin(){return returnOrigin;} public String getPayuPaymentId(){return payuPaymentId;} public String getBankReference(){return bankReference;} public String getPaymentMethod(){return paymentMethod;} public String getGatewayStatus(){return gatewayStatus;} public String getGatewayMessage(){return gatewayMessage;} public BigDecimal getWalletBalanceAfter(){return walletBalanceAfter;} public Status getStatus(){return status;} public Instant getCreatedAt(){return createdAt;} public Instant getUpdatedAt(){return updatedAt;} public Instant getCompletedAt(){return completedAt;}
 }

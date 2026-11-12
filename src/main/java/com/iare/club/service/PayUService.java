@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class PayUService {
-    private static final String PRODUCT="Money Mint Deposit";
+    private static final String PRODUCT="FundRise Deposit";
     private final DepositService deposits;private final PayUClient client;private final PayUHashService hashes;private final boolean enabled;private final String key;private final String checkoutUrl;private final String callbackUrl;
     public PayUService(DepositService deposits,PayUClient client,PayUHashService hashes,@Value("${payu.enabled:false}")boolean enabled,@Value("${payu.environment:TEST}")String environment,@Value("${payu.merchant-key:}")String key,@Value("${payu.salt:}")String salt,@Value("${payu.callback-base-url:}")String base){
         this.deposits=deposits;this.client=client;this.hashes=hashes;this.enabled=enabled;this.key=key.strip();

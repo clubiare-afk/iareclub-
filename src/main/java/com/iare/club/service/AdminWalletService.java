@@ -68,7 +68,7 @@ public class AdminWalletService {
     private String referenceFor(String requestId) {
         try {
             String value = UUID.fromString(requestId).toString().replace("-", "").toUpperCase();
-            return "ADM" + value.substring(0, 24);
+            return "MM" + value.substring(0, 20);
         } catch (RuntimeException exception) {
             throw new CreditException("Invalid or expired credit request");
         }

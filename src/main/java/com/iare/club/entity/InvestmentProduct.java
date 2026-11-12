@@ -24,6 +24,7 @@ public class InvestmentProduct {
     @NotNull @Min(value = 1, message = "Total days must be at least 1") @Max(value = 3650, message = "Total days cannot exceed 3650")
     @Column(name = "total_days", nullable = false) private Integer totalDays;
     @Column(nullable = false) private boolean active = true;
+    @Column(nullable = false) private boolean archived = false;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
@@ -41,5 +42,6 @@ public class InvestmentProduct {
     public BigDecimal getDailyEarnings(){return dailyEarnings;} public void setDailyEarnings(BigDecimal v){dailyEarnings=v;}
     public Integer getTotalDays(){return totalDays;} public void setTotalDays(Integer v){totalDays=v;}
     public boolean isActive(){return active;} public void setActive(boolean active){this.active=active;}
+    public boolean isArchived(){return archived;} public void setArchived(boolean archived){this.archived=archived;}
     public Instant getCreatedAt(){return createdAt;} public Instant getUpdatedAt(){return updatedAt;}
 }

@@ -75,7 +75,7 @@ public class SecurityConfig {
             .securityContext(context->context.securityContextRepository(contextRepository))
             .authorizeHttpRequests(auth->auth
                 .requestMatchers("/","/signup","/login","/css/**","/js/**","/images/**","/error","/payments/payu/callback","/payments/payu/webhook").permitAll()
-                .requestMatchers("/dashboard/**","/products/**","/my-products/**","/scratch/**","/wallet/**","/deposit/**","/investments/**","/api/investments/**","/withdrawal/**","/activity/**","/refer-and-earn/**","/payments/payu/status","/payments/payu/result","/api/advertisements/active","/api/carousel-banners/active").hasRole("USER").anyRequest().denyAll())
+                .requestMatchers("/dashboard/**","/products/**","/my-products/**","/scratch/**","/wallet/**","/deposit/**","/investments/**","/api/investments/**","/withdrawal/**","/activity/**","/refer-and-earn/**","/support/**","/payments/payu/status","/payments/payu/result","/api/advertisements/active","/api/carousel-banners/active").hasRole("USER").anyRequest().denyAll())
             .formLogin(form->form.loginPage("/login").usernameParameter("email")
                 .successHandler((request,response,authentication)->{
                     HttpSessionRequestCache cache=new HttpSessionRequestCache();
