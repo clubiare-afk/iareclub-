@@ -58,6 +58,14 @@ class ClubApplicationTests {
 	void contextLoads() {
 	}
 
+	@Test void adsenseLoaderAppearsExactlyOnceInsideTheRenderedHeadWithoutAdPlacements() throws Exception {
+		String html=mvc.perform(get("/")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+		String loader="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5540224139676570";
+		assertEquals(1,html.split(java.util.regex.Pattern.quote(loader),-1).length-1);
+		assertTrue(html.indexOf(loader)<html.indexOf("</head>"));
+		assertFalse(html.contains("class=\"adsbygoogle\""));
+	}
+
 	@Test void registrationLoginAndProtectedDashboardWork() throws Exception {
 		mvc.perform(get("/dashboard")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("http://localhost/login"));
 		mvc.perform(post("/signup").with(csrf()).param("fullName","Aarav Sharma").param("email","aarav@example.com").param("password","Secure123"))
