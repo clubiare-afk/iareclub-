@@ -65,4 +65,27 @@ Register this additional server callback in PayU Dashboard under **Settings → 
 https://<your-railway-domain>/payments/payu/webhook
 ```
 
+### PayU merchant/display name
+
+PayU Hosted Checkout does not accept a merchant/display-name field in the
+payment request. The checkout page and the merchant/payee name shown by UPI or
+PayU-generated QR flows come from the PayU merchant profile (and, where
+applicable, the acquiring bank/NPCI mapping) associated with
+`PAYU_MERCHANT_KEY`. Changing the FundRise application name, `productinfo`, or
+callback pages does not change that identity.
+
+After changing the name in the PayU Dashboard, verify that production uses the
+key belonging to the updated merchant account. If the old name remains on
+Hosted Checkout or in a UPI app, open a PayU support request and ask PayU to
+confirm/approve the display-name change and refresh the UPI VPA/QR/acquirer
+mapping. Include the merchant ID/key identifier (never the salt), the affected
+PayU payment ID, screenshots, and the date the dashboard change was approved.
+Existing application transactions and caches do not store the PayU merchant
+name.
+
+PayU documents a merchant-details API only for Partner Onboarding accounts. It
+requires partner OAuth credentials and `refer_merchant` scope, and it cannot be
+used by a standard Hosted Checkout merchant to refresh its own display name.
+Do not add partner credentials or expose merchant-profile calls to the browser.
+
 Never commit the merchant key or salt. Rotate any credentials that have previously been committed, then update the Railway variables with the replacements.

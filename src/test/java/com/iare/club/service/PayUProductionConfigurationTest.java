@@ -37,6 +37,13 @@ class PayUProductionConfigurationTest {
         assertEquals(checkout.fields().get("surl"), checkout.fields().get("furl"));
         assertEquals(checkout.fields().get("surl"), checkout.fields().get("curl"));
         assertEquals("9876543210", checkout.fields().get("phone"));
+        // Hosted Checkout resolves the customer-facing merchant identity from
+        // the PayU account associated with the key. Supplying an invented
+        // merchant-name field here would not update PayU/UPI and risks an
+        // unsupported request diverging from the signed integration contract.
+        assertFalse(checkout.fields().containsKey("merchantName"));
+        assertFalse(checkout.fields().containsKey("merchant_name"));
+        assertFalse(checkout.fields().containsKey("display_name"));
         assertFalse(checkout.fields().values().stream().anyMatch(value -> value.contains("localhost")));
     }
 
