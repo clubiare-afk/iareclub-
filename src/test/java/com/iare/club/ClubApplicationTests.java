@@ -208,7 +208,7 @@ class ClubApplicationTests {
 	@Test void depositFormCannotDirectlyCreditTheWallet() throws Exception {
 		RegistrationRequest registration=new RegistrationRequest();registration.setFullName("Direct Deposit User");registration.setEmail("direct-deposit@example.com");registration.setPassword("Secure123");AppUser account=userService.register(registration);
 		mvc.perform(post("/deposit").with(user("direct-deposit@example.com").roles("USER")).with(csrf()).param("amount","750.00").param("phone","9876543210"))
-			.andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/deposit"));
+			.andExpect(status().is3xxRedirection()).andExpect(redirectedUrlPattern("/payments/upi/*"));
 		assertEquals(0,BigDecimal.ZERO.compareTo(walletService.getOrCreate(account).getDepositBalance()));
 	}
 
