@@ -1,0 +1,1 @@
+package com.iare.club.repository;import com.iare.club.entity.MerchantPaymentConfigHistory;import org.springframework.data.jpa.repository.JpaRepository;import java.util.List;public interface MerchantPaymentConfigHistoryRepository extends JpaRepository<MerchantPaymentConfigHistory,Long>{List<MerchantPaymentConfigHistory> findTop50ByOrderByChangedAtDesc();}

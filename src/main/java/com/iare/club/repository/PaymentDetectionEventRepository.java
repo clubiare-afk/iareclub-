@@ -1,0 +1,1 @@
+package com.iare.club.repository;import com.iare.club.entity.PaymentDetectionEvent;import org.springframework.data.jpa.repository.JpaRepository;public interface PaymentDetectionEventRepository extends JpaRepository<PaymentDetectionEvent,Long>{}

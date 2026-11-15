@@ -1,0 +1,1 @@
+package com.iare.club.repository;import com.iare.club.entity.PaymentWebhookDelivery;import org.springframework.data.jpa.repository.JpaRepository;public interface PaymentWebhookDeliveryRepository extends JpaRepository<PaymentWebhookDelivery,Long>{boolean existsByProviderAndDeliveryId(String provider,String deliveryId);}

@@ -78,6 +78,23 @@ public class DepositService {
     }
 
     @Transactional
+    public Deposit createUpi(AppUser user,BigDecimal amount){
+        limits.check("upi-create:"+user.getId(),10);validateAmount(amount);
+        String reference="UPI"+UUID.randomUUID().toString().replace("-","").substring(0,24).toUpperCase();
+        return deposits.save(new Deposit(user,amount.setScale(2,RoundingMode.UNNECESSARY),reference,"UPI_QR",clock.instant()));
+    }
+
+    @Transactional
+    public Deposit creditVerifiedUpi(String reference,String providerTransactionId,String bankReference){
+        Deposit deposit=deposits.findByPaymentReferenceForUpdate(reference).orElseThrow(()->new FinancialException("Deposit not found"));
+        if(deposit.getStatus()==Deposit.Status.SUCCESSFUL)return deposit;
+        if(deposit.getStatus()!=Deposit.Status.PENDING)throw new FinancialException("A final deposit cannot be credited");
+        Instant now=clock.instant();Wallet wallet=walletService.lock(deposit.getUser());BigDecimal before=wallet.getDepositBalance();wallet.creditDeposit(deposit.getAmount());
+        if(deposit.markSuccessful(now,wallet.getDepositBalance())){deposit.updateGateway(providerTransactionId,"UPI","VERIFIED","Authenticated provider or bank-record verification",bankReference,now);wallets.save(wallet);if(!transactions.existsByReference(reference))transactions.save(WalletTransaction.upiDeposit(deposit.getUser(),deposit.getAmount(),before,wallet.getDepositBalance(),reference,now));}
+        return deposits.save(deposit);
+    }
+
+    @Transactional
     public Deposit applyPayUVerification(PayUClient.Verification verification) {
         Deposit deposit = deposits.findByPaymentReferenceForUpdate(verification.transactionId())
                 .orElseThrow(() -> new FinancialException("Deposit not found"));
