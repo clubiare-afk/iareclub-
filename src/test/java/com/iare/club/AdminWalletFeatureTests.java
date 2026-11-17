@@ -31,7 +31,7 @@ class AdminWalletFeatureTests {
     @Autowired AdminCreditAuditRepository audits;
 
     @Test
-    void adminCreditIsAtomicAuditedDistinctFromPayUAndIdempotent() throws Exception {
+    void adminCreditIsAtomicAuditedDistinctFromGatewayAndIdempotent() throws Exception {
         AppUser user = register("Wallet Credit User", "wallet-credit@example.com");
         String requestId = UUID.randomUUID().toString();
 
@@ -45,7 +45,7 @@ class AdminWalletFeatureTests {
         Deposit deposit = deposits.findByPaymentReference(first.transactionId()).orElseThrow();
         assertEquals("ADMIN_CREDIT", deposit.getPaymentMethod());
         assertEquals(Deposit.Status.SUCCESSFUL, deposit.getStatus());
-        assertNull(deposit.getPayuPaymentId());
+        assertNull(deposit.getGatewayTransactionId());
         assertNull(deposit.getGatewayStatus());
         assertEquals("Wallet Deposit", deposit.getDisplayMethod());
         assertEquals("FundRise Internal", deposit.getDisplayProvider());

@@ -19,16 +19,16 @@
   <section class="available-withdrawal-card available-deposit-card"><span><i data-lucide="wallet-cards"></i></span><div><small>AVAILABLE DEPOSIT AMOUNT</small><strong th:text="'₹'+${#numbers.formatDecimal(wallet.depositBalance,1,2)}">₹0.00</strong><p>Verified funds available for investment purchases</p></div></section>
   <section class="deposit-layout">
    <div class="finance-panel deposit-form-panel">
-    <span class="demo-mode"><i data-lucide="qr-code"></i> DIRECT UPI QR</span>
+    <span class="demo-mode"><i data-lucide="shield-check"></i> ZAPUPI CASHIER</span>
     <h2>Choose an amount</h2>
-    <p>Generate a secure UPI QR for Fundraiser. Your wallet is credited only after the payment is independently verified.</p>
-    <form th:action="@{/deposit}" th:object="${depositRequest}" method="post" id="upiDepositForm" th:attr="data-upi-configured=${upiEnabled}">
+    <p>Continue to ZapUPI's hosted Cashier. Your wallet is credited only after server-side verification.</p>
+    <form th:action="@{/deposit}" th:object="${depositRequest}" method="post" id="zapUpiDepositForm" th:attr="data-payment-configured=${paymentEnabled}">
      <label for="amount">Deposit amount</label>
      <div class="money-input"><span>₹</span><input th:field="*{amount}" type="number" min="1" step="0.01" placeholder="0.00" required></div>
      <small class="field-error" th:errors="*{amount}"></small>
      <div class="quick-amounts"><button type="button" data-amount="500">₹500</button><button type="button" data-amount="1000">₹1,000</button><button type="button" data-amount="5000">₹5,000</button><button type="button" data-amount="10000">₹10,000</button></div>
-     <button class="btn btn-mint btn-submit" id="createQrButton" type="submit" th:disabled="${!upiEnabled}">Create QR <i data-lucide="qr-code"></i></button>
-     <small class="field-error" th:unless="${upiEnabled}">UPI payments are temporarily unavailable because UPI_ID is not configured.</small>
+     <button class="btn btn-mint btn-submit" id="payButton" type="submit" th:disabled="${!paymentEnabled}">Continue to payment <i data-lucide="arrow-right"></i></button>
+     <small class="field-error" th:unless="${paymentEnabled}">Online payments are temporarily unavailable.</small>
     </form>
     <div class="payment-safety"><i data-lucide="shield-check"></i><span><b>Verification required before wallet credit</b><small>Creating or scanning a QR does not prove settlement. Unverified payments remain pending.</small></span></div>
    </div>
@@ -39,6 +39,6 @@
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script><script th:src="@{/js/app.js}"></script>
 <script>
-(()=>{const form=document.getElementById('upiDepositForm'),amount=document.getElementById('amount'),button=document.getElementById('createQrButton');if(!form||!amount||!button)return;const configured=form.dataset.upiConfigured==='true';const update=()=>{const value=Number(amount.value);button.disabled=!configured||!Number.isFinite(value)||value<1};amount.addEventListener('input',update);document.querySelectorAll('.quick-amounts [data-amount]').forEach(item=>item.addEventListener('click',()=>setTimeout(update,0)));update()})();
+(()=>{const form=document.getElementById('zapUpiDepositForm'),amount=document.getElementById('amount'),button=document.getElementById('payButton');if(!form||!amount||!button)return;const configured=form.dataset.paymentConfigured==='true';const update=()=>{const value=Number(amount.value);button.disabled=!configured||!Number.isFinite(value)||value<1};amount.addEventListener('input',update);form.addEventListener('submit',()=>{button.disabled=true;button.textContent='Opening secure payment…'});document.querySelectorAll('.quick-amounts [data-amount]').forEach(item=>item.addEventListener('click',()=>setTimeout(update,0)));update()})();
 </script>
 </body></html>

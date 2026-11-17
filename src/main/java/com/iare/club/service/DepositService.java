@@ -7,6 +7,10 @@ import com.iare.club.entity.WalletTransaction;
 import com.iare.club.repository.DepositRepository;
 import com.iare.club.repository.WalletRepository;
 import com.iare.club.repository.WalletTransactionRepository;
+import com.iare.club.repository.ProductRepository;
+import com.iare.club.repository.UserInvestmentRepository;
+import com.iare.club.entity.InvestmentProduct;
+import com.iare.club.entity.UserInvestment;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -27,10 +31,15 @@ public class DepositService {
     private final Clock clock;
     private final boolean demoEnabled;
     private final RateLimitService limits;
+    private final ProductRepository products;
+    private final UserInvestmentRepository investments;
+    private final ReferralService referrals;
+    private final int rewardPeriodHours;
 
     public DepositService(DepositRepository deposits, WalletRepository wallets,
             WalletTransactionRepository transactions, WalletService walletService, Clock clock,
-            RateLimitService limits,
+            RateLimitService limits, ProductRepository products, UserInvestmentRepository investments, ReferralService referrals,
+            @Value("${moneymint.reward.period-hours:24}") int rewardPeriodHours,
             @Value("${moneymint.demo-payments.enabled:false}") boolean demoEnabled) {
         this.deposits = deposits;
         this.wallets = wallets;
@@ -38,6 +47,7 @@ public class DepositService {
         this.walletService = walletService;
         this.clock = clock;
         this.limits = limits;
+        this.products=products;this.investments=investments;this.referrals=referrals;this.rewardPeriodHours=rewardPeriodHours;
         this.demoEnabled = demoEnabled;
     }
 
@@ -67,14 +77,45 @@ public class DepositService {
     }
 
     @Transactional
-    public Deposit createPayU(AppUser user, BigDecimal amount) { return createPayU(user,amount,"https://iareclub-production.up.railway.app"); }
+    public Deposit createZapUpi(AppUser user, BigDecimal amount) { return createZapUpi(user,amount,"https://iareclub-production.up.railway.app"); }
 
     @Transactional
-    public Deposit createPayU(AppUser user, BigDecimal amount, String returnOrigin) {
-        limits.check("payu-create:" + user.getId(), 10);
+    public Deposit createZapUpi(AppUser user, BigDecimal amount, String returnOrigin) {
+        limits.check("zapupi-create:" + user.getId(), 10);
         validateAmount(amount);
-        String reference = "MM" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
-        return deposits.save(new Deposit(user, amount.setScale(2, RoundingMode.UNNECESSARY), reference, "PAYU", clock.instant(),returnOrigin));
+        String reference = "ZAP" + UUID.randomUUID().toString().replace("-", "").substring(0, 24).toUpperCase();
+        return deposits.save(new Deposit(user, amount.setScale(2, RoundingMode.UNNECESSARY), reference, "ZAPUPI", clock.instant(),returnOrigin));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Deposit> reusableZapUpi(AppUser user, BigDecimal amount) {
+        validateAmount(amount);
+        return deposits.findReusable(user.getId(), Deposit.Status.PENDING, "ZAPUPI",
+                        clock.instant().minusSeconds(10 * 60), org.springframework.data.domain.PageRequest.of(0, 5))
+                .stream().filter(d -> d.getAmount().compareTo(amount.setScale(2, RoundingMode.UNNECESSARY)) == 0).findFirst();
+    }
+
+    @Transactional
+    public Deposit createZapUpiProduct(AppUser user,long productId,String requestReference,String returnOrigin){
+        limits.check("zapupi-product:"+user.getId(),10);
+        if(investments.existsByUserIdAndProductId(user.getId(),productId))throw new InvestmentService.DuplicatePurchaseException();
+        InvestmentProduct product=products.findById(productId).orElseThrow(()->new FinancialException("Product not found"));
+        if(!product.isActive())throw new FinancialException("This product is not currently active");
+        Deposit payment=createZapUpi(user,product.getDiscountPrice(),returnOrigin);payment.setProductPurchase(productId,requestReference,clock.instant());return deposits.save(payment);
+    }
+
+    @Transactional
+    public Deposit recordZapUpiOrder(String reference,String transactionId,String environment,String checkoutUrl,String payId,String paymentPayload){
+        Deposit deposit=deposits.findByPaymentReferenceForUpdate(reference).orElseThrow(()->new FinancialException("Deposit not found"));
+        if(deposit.getStatus()==Deposit.Status.PENDING){Instant now=clock.instant();deposit.markPending(transactionId,"ZAPUPI","Pending","ZapUPI order created in "+environment,null,now);deposit.setCheckout(checkoutUrl,payId,paymentPayload,now);}
+        return deposits.save(deposit);
+    }
+
+    @Transactional
+    public Deposit failZapUpiOrder(String reference,String transactionId,String message){
+        Deposit deposit=deposits.findByPaymentReferenceForUpdate(reference).orElseThrow(()->new FinancialException("Deposit not found"));
+        if(deposit.getStatus()==Deposit.Status.PENDING)deposit.markFailed(false,transactionId,"ZAPUPI","FAILED",message,null,clock.instant());
+        return deposits.save(deposit);
     }
 
     @Transactional
@@ -95,27 +136,48 @@ public class DepositService {
     }
 
     @Transactional
-    public Deposit applyPayUVerification(PayUClient.Verification verification) {
-        Deposit deposit = deposits.findByPaymentReferenceForUpdate(verification.transactionId())
+    public Deposit applyZapUpiVerification(ZapUpiClient.Verification verification,boolean liveMode) {
+        Deposit deposit = deposits.findByPaymentReferenceForUpdate(verification.orderId())
                 .orElseThrow(() -> new FinancialException("Deposit not found"));
         if (deposit.getStatus() == Deposit.Status.SUCCESSFUL) return deposit;
         if (verification.amount() != null && verification.amount().compareTo(deposit.getAmount()) != 0)
-            throw new FinancialException("PayU amount mismatch; payment was not credited");
+            throw new FinancialException("ZapUPI amount mismatch; payment was not credited");
         Instant now = clock.instant();
-        if (verification.captured()) {
-            if (verification.amount() == null) throw new FinancialException("PayU did not return a verifiable amount");
-            Wallet wallet = walletService.lock(deposit.getUser());
-            BigDecimal previousBalance = wallet.getDepositBalance();
-            wallet.creditDeposit(deposit.getAmount());
-            if (deposit.markSuccessful(now, wallet.getDepositBalance())) {
-                deposit.updateGateway(verification.payuPaymentId(), verification.paymentMethod(), verification.unmappedStatus(), verification.message(), verification.bankReference(), now);
+        if (verification.successful()) {
+            if (verification.amount() == null || verification.paidAmount() == null || verification.paidAmount().compareTo(deposit.getAmount()) != 0)
+                throw new FinancialException("ZapUPI did not confirm the exact paid amount");
+            if (verification.transactionId()==null || verification.transactionId().isBlank() || verification.utr()==null || verification.utr().isBlank())
+                throw new FinancialException("ZapUPI success lacked a transaction ID or UTR");
+            if (liveMode && !"cashier".equalsIgnoreCase(verification.environment()))
+                throw new FinancialException("A non-cashier ZapUPI payment cannot credit a live wallet");
+            if("PRODUCT_PURCHASE".equals(deposit.getPaymentPurpose())){
+                if(!investments.existsByUserIdAndProductId(deposit.getUser().getId(),deposit.getProductId())){
+                    InvestmentProduct product=products.findById(deposit.getProductId()).orElseThrow(()->new FinancialException("Paid product no longer exists"));
+                    UserInvestment investment=investments.saveAndFlush(new UserInvestment(deposit.getUser(),product,deposit.getPurchaseRequestReference(),now,rewardPeriodHours));
+                    referrals.rewardFirstPurchase(deposit.getUser(),investment);
+                }
+                deposit.markSuccessful(now,null);deposit.updateGateway(verification.transactionId(),"ZAPUPI",verification.status(),verification.message(),verification.utr(),now);
+            }else{
+              Wallet wallet = walletService.lock(deposit.getUser());
+              BigDecimal previousBalance = wallet.getDepositBalance();
+              wallet.creditDeposit(deposit.getAmount());
+              if (deposit.markSuccessful(now, wallet.getDepositBalance())) {
+                deposit.updateGateway(verification.transactionId(), "ZAPUPI", verification.status(), verification.message(), verification.utr(), now);
                 wallets.save(wallet);
-                if (!transactions.existsByReference(deposit.getPaymentReference())) transactions.save(WalletTransaction.payuDeposit(deposit.getUser(),deposit.getAmount(),previousBalance,wallet.getDepositBalance(),deposit.getPaymentReference(),verification.paymentMethod(),now));
+                if (!transactions.existsByReference(deposit.getPaymentReference())) transactions.save(WalletTransaction.gatewayDeposit(deposit.getUser(),deposit.getAmount(),previousBalance,wallet.getDepositBalance(),deposit.getPaymentReference(),"ZAPUPI",now));
+              }
             }
-        } else if (verification.pending() || "not_found".equalsIgnoreCase(verification.status())) {
-            deposit.markPending(verification.payuPaymentId(), verification.paymentMethod(), verification.unmappedStatus(), verification.message(), verification.bankReference(), now);
+        } else if (verification.pending()) {
+            deposit.markPending(verification.transactionId(), "ZAPUPI", verification.status(), verification.message(), verification.utr(), now);
+        } else if (verification.paidAmount()!=null && verification.paidAmount().compareTo(deposit.getAmount())==0
+                && verification.transactionId()!=null && !verification.transactionId().isBlank()
+                && (verification.utr()==null || verification.utr().isBlank())) {
+            // Cashier can temporarily report Failed after receiving the amount but before it has a
+            // verifiable bank reference. Keep reconciling; never credit or invite another payment.
+            deposit.markPending(verification.transactionId(), "ZAPUPI", "AWAITING_SETTLEMENT",
+                    "ZapUPI received the amount but has not provided verified settlement confirmation", null, now);
         } else {
-            deposit.markFailed(verification.cancelled(), verification.payuPaymentId(), verification.paymentMethod(), verification.unmappedStatus(), verification.message(), verification.bankReference(), now);
+            deposit.markFailed(false, verification.transactionId(), "ZAPUPI", verification.status(), verification.message(), verification.utr(), now);
         }
         return deposits.save(deposit);
     }
@@ -165,6 +227,9 @@ public class DepositService {
         if (reference == null || reference.isBlank()) return Optional.empty();
         return deposits.findByPaymentReference(reference).map(Deposit::getReturnOrigin);
     }
+
+    @Transactional(readOnly = true)
+    public Optional<String> paymentPurpose(String reference){return deposits.findByPaymentReference(reference).map(Deposit::getPaymentPurpose);}
 
     public boolean isDemoEnabled() { return demoEnabled; }
 

@@ -74,8 +74,8 @@ public class SecurityConfig {
         http.authenticationProvider(provider)
             .securityContext(context->context.securityContextRepository(contextRepository))
             .authorizeHttpRequests(auth->auth
-                .requestMatchers("/","/signup","/login","/css/**","/js/**","/images/**","/error","/payments/payu/callback","/payments/payu/webhook","/payments/webhooks/**").permitAll()
-                .requestMatchers("/dashboard/**","/products/**","/my-products/**","/scratch/**","/wallet/**","/deposit/**","/investments/**","/api/investments/**","/withdrawal/**","/activity/**","/refer-and-earn/**","/support/**","/payments/payu/status","/payments/payu/result","/payments/upi/**","/api/advertisements/active","/api/carousel-banners/active").hasRole("USER").anyRequest().denyAll())
+                .requestMatchers("/","/signup","/login","/css/**","/js/**","/images/**","/error","/payments/zapupi/webhook","/payments/webhooks/**").permitAll()
+                .requestMatchers("/dashboard/**","/products/**","/my-products/**","/scratch/**","/wallet/**","/deposit/**","/investments/**","/api/investments/**","/withdrawal/**","/activity/**","/refer-and-earn/**","/support/**","/payments/zapupi/return","/payments/zapupi/status","/payments/zapupi/result","/payments/zapupi/checkout/**","/payments/zapupi/check/**","/payments/upi/**","/api/advertisements/active","/api/carousel-banners/active").hasRole("USER").anyRequest().denyAll())
             .formLogin(form->form.loginPage("/login").usernameParameter("email")
                 .successHandler((request,response,authentication)->{
                     HttpSessionRequestCache cache=new HttpSessionRequestCache();
@@ -94,7 +94,7 @@ public class SecurityConfig {
                 .invalidateHttpSession(false).clearAuthentication(true))
             .sessionManagement(session->session.sessionFixation(fix->fix.migrateSession()))
             .exceptionHandling(ex->ex.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")));
-        http.csrf(csrf->csrf.ignoringRequestMatchers("/payments/payu/callback","/payments/payu/webhook","/payments/webhooks/**"));
+        http.csrf(csrf->csrf.ignoringRequestMatchers("/payments/zapupi/webhook","/payments/webhooks/**"));
         return http.build();
     }
 }

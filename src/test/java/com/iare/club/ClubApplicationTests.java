@@ -208,32 +208,43 @@ class ClubApplicationTests {
 	@Test void depositFormCannotDirectlyCreditTheWallet() throws Exception {
 		RegistrationRequest registration=new RegistrationRequest();registration.setFullName("Direct Deposit User");registration.setEmail("direct-deposit@example.com");registration.setPassword("Secure123");AppUser account=userService.register(registration);
 		mvc.perform(post("/deposit").with(user("direct-deposit@example.com").roles("USER")).with(csrf()).param("amount","750.00").param("phone","9876543210"))
-			.andExpect(status().is3xxRedirection()).andExpect(redirectedUrlPattern("/payments/upi/*"));
+			.andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/deposit"));
 		assertEquals(0,BigDecimal.ZERO.compareTo(walletService.getOrCreate(account).getDepositBalance()));
 	}
 
-	@Test void payuVerificationCreditsExactlyOnceAndRejectsUnverifiedStates() throws Exception {
-		RegistrationRequest registration=new RegistrationRequest();registration.setFullName("PayU Test User");registration.setEmail("payu-flow@example.com");registration.setPassword("Secure123");AppUser account=userService.register(registration);
-		Deposit success=depositService.createPayU(account,new BigDecimal("750.00"));
-		PayUClient.Verification captured=new PayUClient.Verification(success.getPaymentReference(),"success","captured",new BigDecimal("750.00"),"PAYU-1","UPI","BANK-1","No Error");
-		depositService.applyPayUVerification(captured);depositService.applyPayUVerification(captured);
+	@Test void zapUpiVerificationHandlesSuccessPendingFailureAmountMismatchAndDuplicates() throws Exception {
+		RegistrationRequest registration=new RegistrationRequest();registration.setFullName("ZapUPI Test User");registration.setEmail("zapupi-flow@example.com");registration.setPassword("Secure123");AppUser account=userService.register(registration);
+		Deposit success=depositService.createZapUpi(account,new BigDecimal("750.00"));
+		ZapUpiClient.Verification verified=new ZapUpiClient.Verification(success.getPaymentReference(),"Success",new BigDecimal("750.00"),new BigDecimal("750.00"),"ZAP-1","UTR-1","cashier","Verified");
+		depositService.applyZapUpiVerification(verified,true);depositService.applyZapUpiVerification(verified,true);
 		assertEquals(0,new BigDecimal("750.00").compareTo(walletService.getOrCreate(account).getDepositBalance()));
-		WalletTransaction payuTransaction=walletTransactions.findByReference(success.getPaymentReference()).orElseThrow();
-		assertEquals("UPI",payuTransaction.getPaymentMethod());
-		assertEquals(0,BigDecimal.ZERO.compareTo(payuTransaction.getBalanceBefore()));
+		WalletTransaction gatewayTransaction=walletTransactions.findByReference(success.getPaymentReference()).orElseThrow();
+		assertEquals("ZAPUPI",gatewayTransaction.getPaymentMethod());
+		assertEquals(0,BigDecimal.ZERO.compareTo(gatewayTransaction.getBalanceBefore()));
 		assertEquals(1,walletTransactions.findAll().stream().filter(item->item.getReference().equals(success.getPaymentReference())).count());
-		mvc.perform(get("/payments/payu/result").param("txnid",success.getPaymentReference()).with(user(account.getEmail()).roles("USER")))
+		mvc.perform(get("/payments/zapupi/result").param("order_id",success.getPaymentReference()).with(user(account.getEmail()).roles("USER")))
 			.andExpect(status().isOk()).andExpect(jsonPath("$.amount").value(750.00)).andExpect(jsonPath("$.walletBalance").value(750.00))
-			.andExpect(jsonPath("$.payuTransactionId").value("PAYU-1")).andExpect(jsonPath("$.paymentMethod").value("UPI"));
-		mvc.perform(post("/payments/payu/webhook").param("txnid",success.getPaymentReference()).param("hash","invalid"))
-			.andExpect(status().isBadRequest());
-		Deposit pending=depositService.createPayU(account,new BigDecimal("200.00"));
-		assertEquals(Deposit.Status.PENDING,depositService.applyPayUVerification(new PayUClient.Verification(pending.getPaymentReference(),"pending","pending",new BigDecimal("200.00"),"PAYU-2","NB",null,"Pending")).getStatus());
-		Deposit failed=depositService.createPayU(account,new BigDecimal("300.00"));
-		assertEquals(Deposit.Status.CANCELLED,depositService.applyPayUVerification(new PayUClient.Verification(failed.getPaymentReference(),"failure","userCancelled",new BigDecimal("300.00"),"PAYU-3","UPI",null,"Cancelled")).getStatus());
-		Deposit tampered=depositService.createPayU(account,new BigDecimal("400.00"));
-		assertThrows(DepositService.FinancialException.class,()->depositService.applyPayUVerification(new PayUClient.Verification(tampered.getPaymentReference(),"success","captured",new BigDecimal("401.00"),"PAYU-4","CC",null,"No Error")));
+			.andExpect(jsonPath("$.zapUpiTransactionId").value("ZAP-1")).andExpect(jsonPath("$.paymentMethod").value("ZAPUPI"));
+		Deposit pending=depositService.createZapUpi(account,new BigDecimal("200.00"));
+		assertEquals(Deposit.Status.PENDING,depositService.applyZapUpiVerification(new ZapUpiClient.Verification(pending.getPaymentReference(),"Pending",new BigDecimal("200.00"),new BigDecimal("0.00"),"ZAP-2","","cashier","Pending"),true).getStatus());
+		Deposit failed=depositService.createZapUpi(account,new BigDecimal("300.00"));
+		assertEquals(Deposit.Status.FAILED,depositService.applyZapUpiVerification(new ZapUpiClient.Verification(failed.getPaymentReference(),"Failed",new BigDecimal("300.00"),new BigDecimal("0.00"),"ZAP-3","","cashier","Failed"),true).getStatus());
+		Deposit awaitingSettlement=depositService.createZapUpi(account,new BigDecimal("1.00"));
+		assertEquals(Deposit.Status.PENDING,depositService.applyZapUpiVerification(new ZapUpiClient.Verification(awaitingSettlement.getPaymentReference(),"Failed",new BigDecimal("1.00"),new BigDecimal("1.00"),"ZAP-PAID-NO-UTR","","cashier","Failed"),true).getStatus());
+		Deposit tampered=depositService.createZapUpi(account,new BigDecimal("400.00"));
+		assertThrows(DepositService.FinancialException.class,()->depositService.applyZapUpiVerification(new ZapUpiClient.Verification(tampered.getPaymentReference(),"Success",new BigDecimal("401.00"),new BigDecimal("401.00"),"ZAP-4","UTR-4","cashier","Verified"),true));
+		Deposit testPayment=depositService.createZapUpi(account,new BigDecimal("50.00"));
+		assertThrows(DepositService.FinancialException.class,()->depositService.applyZapUpiVerification(new ZapUpiClient.Verification(testPayment.getPaymentReference(),"Success",new BigDecimal("50.00"),new BigDecimal("50.00"),"DUMMY-1","UTR-T","test","Test"),true));
 		assertEquals(0,new BigDecimal("750.00").compareTo(walletService.getOrCreate(account).getDepositBalance()));
+	}
+
+	@Test void verifiedZapUpiProductPaymentActivatesProductExactlyOnceWithoutCreditingWallet(){
+		RegistrationRequest request=new RegistrationRequest();request.setFullName("Gateway Product Buyer");request.setEmail("gateway-product@example.com");request.setPassword("Secure123");AppUser buyer=userService.register(request);
+		InvestmentProduct product=new InvestmentProduct();product.setName("Gateway Product");product.setImageUrl("https://example.com/gateway.jpg");product.setOriginalPrice(new BigDecimal("150.00"));product.setDiscountPrice(new BigDecimal("100.00"));product.setDailyEarnings(new BigDecimal("5.00"));product.setTotalDays(3);product.setActive(true);product=productService.save(product);
+		Deposit payment=depositService.createZapUpiProduct(buyer,product.getId(),"gateway-product-request","https://fundrise.shop");
+		ZapUpiClient.Verification verified=new ZapUpiClient.Verification(payment.getPaymentReference(),"Success",new BigDecimal("100.00"),new BigDecimal("100.00"),"ZAP-PRODUCT-1","UTR-PRODUCT-1","cashier","Verified");
+		depositService.applyZapUpiVerification(verified,true);depositService.applyZapUpiVerification(verified,true);
+		assertTrue(investmentService.purchasedProductIds(buyer).contains(product.getId()));assertEquals(0,BigDecimal.ZERO.compareTo(walletService.getOrCreate(buyer).getDepositBalance()));
 	}
 
 	@Test void withdrawalCooldownRejectsDuplicatesAndAllowsTheExactBoundary() {

@@ -1,0 +1,3 @@
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS gateway_checkout_url VARCHAR(1000);
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS gateway_pay_id VARCHAR(100);
+ALTER TABLE deposits ADD COLUMN IF NOT EXISTS gateway_payment_payload VARCHAR(2000);
